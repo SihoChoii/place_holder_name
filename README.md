@@ -16,6 +16,13 @@ npm run eval:mock
 
 These commands cover the package build, unit suite, HTTP smoke path, and deterministic 20-case fixture evaluation. They do not start a production server: a host must register the plugin and supply its backend dependencies.
 
+Verified locally under Node 24.22.1: the build, 70 behavioral tests, all 20
+mock golden scenarios (16/16 valid tool-call cases), strict replay of those
+20 scenarios, and nine HTTP/SSE smoke groups pass. The compiled `dist` evaluator
+also passes the 20 scenarios. These checks use isolated SQLite databases and
+fixture model servers; they are not measurements of the deployed Gemma/Clef hosts.
+
+
 The operational runners below are checked-in local tooling. Running one is not evidence of a deployed model or an end-to-end client integration.
 
 ```sh

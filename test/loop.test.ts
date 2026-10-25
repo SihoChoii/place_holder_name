@@ -274,3 +274,13 @@ test('demo taps deliver a cached fact card and narration with no model', async (
   assert.deepEqual(frames.at(-1), { event: 'done', data: { reason: 'complete' } });
   agent.db.close();
 });
+
+test('local narration cannot bypass the view guard by naming an off-view star', async () => {
+  const agent = deps(new FakeGuide([{ role: 'assistant', content: 'Sirius is beautiful tonight.' }]));
+  const frames = await collect(runAgent(agent, request('Describe the sky'), context(), skill('star_qa'), immediateTicket()));
+  const text = frames.filter((event) => event.event === 'delta').map((event) => event.data.text).join('');
+  assert.doesNotMatch(text, /Sirius/);
+  assert.match(text, /not in view.*Explore/);
+  assert.deepEqual(frames.at(-1), { event: 'done', data: { reason: 'complete' } });
+  agent.db.close();
+});

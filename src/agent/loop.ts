@@ -236,6 +236,12 @@ export async function* runAgent(
       }
       if (parsed.kind === 'text') {
         const namedStars = deps.catalog.namesIn(parsed.text);
+        if (ctx.mode === 'local' && namedStars.some((star) => !ctx.inView.has(star.hyg_id))) {
+          yield* emitComplete(deps, ctx, req.message,
+            'That star is not in view. Switch to Explore mode to ask about it.',
+            [], selected, [...references]);
+          return;
+        }
         for (const star of namedStars) {
           if (ctx.mode !== 'local' || ctx.inView.has(star.hyg_id)) ledger.addName(star.name);
         }
