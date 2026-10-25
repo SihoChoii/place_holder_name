@@ -106,6 +106,8 @@ export async function buildApp(config: Config, opts: BuildOptions = {}): Promise
   });
 
   await app.register(async (api) => {
+    // Covers personalized JSON, auth token issuance, and validation/auth error responses.
+    api.addHook("onRequest", async (_req, reply) => { reply.header("cache-control", "private, no-store"); });
     await api.register(healthRoutes, { readiness });
     await api.register(authRoutes, { ctx });
     await api.register(publicRoutes, { ctx, store });
@@ -114,8 +116,8 @@ export async function buildApp(config: Config, opts: BuildOptions = {}): Promise
     api.setNotFoundHandler((_req, reply) => reply.code(404).send({ error: { code: "not_found", message: "No such route." } }));
   }, { prefix: API_PREFIX });
 
-  // Same-origin website: serve the built SPA (apps/web/dist) when present, with index.html fallback.
-  const webDist = opts.webDist === undefined ? join(REPO_ROOT, "apps/web/dist") : opts.webDist;
+  // Next.js static export shares the API origin in production.
+  const webDist = opts.webDist === undefined ? join(REPO_ROOT, "apps/web/out") : opts.webDist;
   if (webDist && existsSync(join(webDist, "index.html"))) {
     await app.register(fastifyStatic, { root: webDist, wildcard: false, index: ["index.html"] });
     app.setNotFoundHandler((req, reply) => {
@@ -135,7 +137,7 @@ export async function buildApp(config: Config, opts: BuildOptions = {}): Promise
   return {
     app, ctx, worker, readiness, store,
     async close() {
-      readiness.stop();
+      await readiness.stop();
       await worker.stop();
       await app.close();
       db.close();

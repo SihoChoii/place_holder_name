@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import "@fontsource-variable/inter";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Stargaze",
-  description: "Web app placeholder",
+  description: "A simple way to explore the stars. Browse the catalog, save stars, and keep your observations.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

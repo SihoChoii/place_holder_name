@@ -6,7 +6,7 @@ A companion website shows the same content; an AI star guide answers questions o
 ```
 apps/
   api/     Fastify API (TypeScript, Node 24) — auth, claims, posts, moderation loop, guide SSE; serves the built website
-  web/     Website (Vite SPA, owned by the web team; built output in apps/web/dist is served by the API)
+  web/     Next.js website (static export in apps/web/out is served by the API)
   ios/     Native iOS app (XcodeGen)
 packages/
   db/      SQLite (better-sqlite3): connection, SQL migrations, moderation-job queries
@@ -30,7 +30,7 @@ Prerequisites: Node 24 LTS (≥ 20 works), pnpm 9 (`corepack enable`). No Docker
 pnpm setup            # .env (+ generated JWT_SECRET, never overwritten), install, build, migrate
 # edit .env: GUIDE_BASE_URL, CLEF_BASE_URL, APP_ORIGIN=http://<backend-lan-host>:4000
 pnpm models:check     # real preflight against both model hosts
-pnpm start            # API (+ website if apps/web/dist exists) on 0.0.0.0:4000
+pnpm start            # API + exported website on 0.0.0.0:4000
 pnpm smoke            # fresh end-to-end check against the running stack (real moderation + guide)
 ```
 
@@ -43,10 +43,11 @@ Docs: [API contract](docs/api-contract.md) · [route matrix](docs/route-matrix.m
 | Command | What it does |
 | --- | --- |
 | `pnpm setup` | Install/prepare `.env`, dependencies, build, migrations (no Docker, never overwrites `.env`) |
-| `pnpm build` / `pnpm start` | Build shared/db/api; start one built API process (serves `apps/web/dist` when present) |
+| `pnpm build` / `pnpm start` | Build shared/db/api and export Next.js; start one built API process serving `apps/web/out` and `/api` |
 | `pnpm dev:api` | API in watch mode (tsx) |
-| `pnpm typecheck` | TypeScript checks for shared, db, api (incl. tests) |
-| `pnpm test` | Automated integration tests: temp DB/media, fake model servers (test fixtures only) |
+| `pnpm dev` / `pnpm dev:api` | Turbo watches dependency sources, rebuilds emitted packages, then restarts affected development servers |
+| `pnpm typecheck` | TypeScript checks for shared, db, api (incl. tests), and web |
+| `pnpm test` | Build the actual website, then integration/regression tests using temp DB/media and fake model servers |
 | `pnpm db:migrate` | Apply unapplied SQLite migrations (same DB from any working directory) |
 | `pnpm models:check [--write-lock]` | Real Gemma/Clef capability checks; `--write-lock` records digests in `docs/model-lock.json` |
 | `pnpm seed` | Demo users/claims/posts (`demo.*@example.com`); posts stay pending until real moderation |
@@ -58,3 +59,10 @@ Docs: [API contract](docs/api-contract.md) · [route matrix](docs/route-matrix.m
 
 Catalog data: HYG Database v4.4 (CC BY-SA 4.0), Stellarium constellation lines (CC BY-SA 4.0), IAU WGSN names,
 NASA Exoplanet Archive, Wikidata — see `catalog/README.md` and `catalog/VERSION.json`.
+
+Development uses Next.js on port 3000 with `/api` proxied to `API_UPSTREAM` (default `http://127.0.0.1:4000`).
+Include that browser origin in `APP_ORIGIN`; custom upstreams can be set with `API_UPSTREAM=http://127.0.0.1:4100 pnpm dev`.
+Production serves both website and API on port 4000. Static export is the supported web build; server-only Next.js features require a different hosting arrangement.
+
+Readiness reports models as `unverified` until `pnpm models:check --write-lock` succeeds, and `drift` if a locked
+model tag/digest or Ollama version changes. Core API routes remain available. Web/iOS product flows and real-model/device acceptance remain incomplete; serving the catalog website does not complete those gates.

@@ -41,13 +41,27 @@ If Clef fails on the GPU laptop, swap roles (Clef on the 24 GB Mac, API on the G
 pnpm start                 # foreground; Ctrl-C (SIGINT) or SIGTERM stops cleanly
 ```
 
-- One API process per data directory: a second start exits with "Another Star Tagger API (pid N)…" (`data/api.pid`).
+- One API process per data directory: a second start exits with "Another Star Tagger API …". A write lock on
+  `data/api.lock.sqlite` provides atomic process exclusion; `api.pid` is diagnostic/legacy compatibility.
+  The mutex never locks the application database, and the OS releases it on process death.
 - Startup applies pending migrations, removes orphaned upload files older than 1 h, starts the moderation loop and
   background model probes. Unfinished moderation jobs persist in SQLite and resume automatically after restart.
 - Liveness: `GET /api/health/live`. Readiness: `GET /api/health/ready` (database, media, guide, moderation).
-- Website: build the SPA into `apps/web/dist` (web team: `pnpm --filter @stargaze/web build`), restart the API; it serves
-  the SPA at `/` with `index.html` fallback. In web development, the Vite dev server proxies `/api` to `http://<host>:4000`.
-- `APP_ORIGIN` must list every origin browsers use (comma-separated), e.g. `http://192.168.1.20:4000,http://localhost:5173`.
+- `pnpm build` builds all packages and exports the Next.js website into `apps/web/out`. `pnpm start` requires that
+  export and serves it at `/` alongside `/api`; no separate production web process is needed.
+- `pnpm dev` runs Next.js on port 3000, proxying `/api` to `API_UPSTREAM` (default `http://127.0.0.1:4000`).
+  Set custom upstreams in the command environment. Turbo watches shared/database sources and rebuilds them before
+  restarting affected development tasks. `pnpm dev:api` uses the same dependency-aware watch behavior.
+- `APP_ORIGIN` must list every origin browsers use (comma-separated), e.g. `http://192.168.1.20:4000,http://localhost:3000`.
+- Authenticated JSON, token responses, and API errors use private/no-store cache protection.
+- Old normalization outputs are cleaned from `media/tmp/`, including legacy `media/*.webp.part` leftovers;
+  files younger than one hour are preserved.
+
+Model readiness compares cached capability probes and `/api/version` + `/api/tags` with `MODEL_LOCK_PATH`
+(default `docs/model-lock.json`). A missing/invalid lock reports `unverified` / `preflight_required`; a changed
+version, tag, or digest reports `drift` / `model_identity_changed`. Restore the accepted model or run and review
+`pnpm models:check --write-lock` after validating the replacement. These states degrade model readiness while
+ordinary API routes remain available. No inference runs on each health request.
 
 ## Moderation recovery
 

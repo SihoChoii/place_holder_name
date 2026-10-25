@@ -2,6 +2,8 @@
 
 `pnpm models:check` runs these against the configured hosts **from the backend laptop** and writes
 `data/models-check.json`. `--write-lock` writes `docs/model-lock.json` (Ollama version, model tag, digest) only when all pass.
+`MODEL_LOCK_PATH` can select another lock path for both the command and runtime readiness. Readiness reports
+`unverified` when no accepted lock exists, and `drift` when the configured model/digest/version differs from it.
 
 | # | Check | Spec |
 | --- | --- | --- |

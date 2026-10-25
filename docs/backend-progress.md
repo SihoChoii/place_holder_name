@@ -4,7 +4,7 @@ Verification columns: **auto** = automated tests (`pnpm test`: temp DB/media, fa
 `apps/api/test/fixtures/`), **live** = real Gemma/Clef hosts, **browser** = real browser through the one origin,
 **iphone** = physical iPhone. `—` = not applicable. `pending` = not run yet (dependency in Notes).
 
-Last updated 2026-10-25 15:59 PDT on Siho's Mac (Node v24.2.0, pnpm 9.15.0, macOS 26.5 arm64).
+Updated 2026-10-25 after backend review repairs (Node v24.2.0, pnpm 9.15.0, macOS 26.5 arm64).
 
 | Step | Status | auto | live | browser | iphone | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -22,7 +22,7 @@ Last updated 2026-10-25 15:59 PDT on Siho's Mac (Node v24.2.0, pnpm 9.15.0, macO
 | 11 Social | done | pass | pending | — | — | Comments (moderated), reactions, author deletion incl. cancel of in-flight jobs |
 | 12 Browse/public | done | pass | — | pending | — | Feed, search (escaped LIKE), all `/public/*` routes |
 | 13 Guide | done (code) | pass | **pending** | pending | pending | Planner + ≤3 tools + streamed final; queue 1+2; 60 s deadline; disconnect cancel. Live: needs Gemma host |
-| 14 Clients | not started by backend | — | — | — | — | Web = Vite SPA owned by Frontend Engineer (branch `web/app`); iOS owned by iOS Developer. Contract + fixtures delivered |
+| 14 Clients | incomplete | — | — | pending | pending | Current web is a Next.js catalog reference; iOS is a scaffold. API transport and fixtures exist; product flow integration remains work |
 | 15 Operations | done (scripts) | pass | pending | — | — | setup/start/migrate/seed/smoke/models:check/moderation:*/db:backup/openapi + `docs/operations.md`; backup→restore drill passed; duplicate-process guard verified. `models:check`/`smoke` against real hosts pending |
 | 16 Release | pending | — | pending | pending | pending | Needs model hosts, browser and phone on the LAN |
 
@@ -36,9 +36,9 @@ Last updated 2026-10-25 15:59 PDT on Siho's Mac (Node v24.2.0, pnpm 9.15.0, macO
 
 ## Deviations from the spec / plan
 
-1. **Website origin:** the web team switched to a Vite SPA (branch `web/app`). Instead of a Next.js `/api` rewrite, Fastify
-   serves `apps/web/dist` (when present) with `index.html` fallback; the Vite dev server proxies `/api` in development.
-2. **APP_ORIGIN** accepts a comma-separated list (e.g. LAN host + `localhost:5173` dev server).
+1. **Website origin:** the actual frontend uses Next.js. Production exports it into `apps/web/out`, served by Fastify
+   on the API origin; Next.js development rewrites `/api` to `API_UPSTREAM`.
+2. **APP_ORIGIN** accepts a comma-separated list (e.g. LAN host + `localhost:3000` dev server).
 3. **Rate limiting** uses a small in-memory fixed-window limiter instead of `@fastify/rate-limit` (needs per-user keys after
    authentication and pre-hash checks; spec allows in-memory counters).
 4. **Connection timeout:** Node `fetch` has no separate connect timeout; each model call has an overall deadline
@@ -46,3 +46,12 @@ Last updated 2026-10-25 15:59 PDT on Siho's Mac (Node v24.2.0, pnpm 9.15.0, macO
 5. **Node:** spec targets Node 24 LTS; this Mac runs v24.2.0 (OK). `engines` allows ≥ 20.11.
 6. **Guide planner:** when the planner calls no tools, its text is discarded and the final streamed call answers
    (keeps one fixed protocol; costs one extra short call).
+
+## Review repairs
+
+All eight findings R1–R8 in `docs/backend-review-2026-10-25.md` have code fixes and regression checks:
+actual Next.js build/serving/proxy; atomic crash-safe process mutex; complete planner/final UTF-8 budgets;
+private API cache headers; locked model identity drift detection; dependency-aware development rebuilds;
+IPv4-mapped IPv6 link rejection; and normalization-output cleanup. `pnpm typecheck` now covers web too.
+The expanded suite has 18 tests, including HTTP requests against the actual web export. Existing frontend edits
+were preserved. Live-model, full client-flow and physical-phone gates remain pending.

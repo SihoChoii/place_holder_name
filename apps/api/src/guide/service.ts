@@ -72,24 +72,31 @@ export function buildMessages(ctx: Ctx, body: ChatRequest, scope: Scope, selecte
   if (selected !== null) context += `\nSelected star facts: ${JSON.stringify(starFacts(ctx, selected))}`;
   const system: OllamaMessage = { role: "system", content: `${SYSTEM}\n${context}` };
   const history: OllamaMessage[] = body.messages.map((m) => ({ role: m.role, content: m.content }));
-  const fixed = bytes([system]) + bytes(TOOL_SCHEMAS);
-  // Trim oldest history first; the current user message must always fit.
-  while (history.length > 1 && fixed + bytes(history) > MODEL_INPUT_BUDGET) history.shift();
-  if (fixed + bytes(history) > MODEL_INPUT_BUDGET) throw badRequest("The message is too long for the guide.", "context_too_large");
-  return [system, ...history];
+  return fitMessages([system, ...history], [], [...TOOL_SCHEMAS]);
 }
 
-function boundedToolResults(results: object[]): string[] {
-  const out: string[] = [];
-  let used = 0;
-  for (const r of results) {
-    let s = JSON.stringify(r);
-    const room = Math.max(TOOL_RESULT_BUDGET - used, 0);
-    if (s.length > room) s = JSON.stringify({ truncated: s.slice(0, Math.max(room - 20, 0)) });
-    used += Buffer.byteLength(s);
-    out.push(s);
-  }
-  return out;
+/** Preserve instructions/current user/facts and tool protocol; trim oldest history only. */
+export function fitMessages(base: OllamaMessage[], suffix: OllamaMessage[] = [], tools?: unknown[]): OllamaMessage[] {
+  const [system, ...history] = base;
+  const size = () => bytes([system, ...history, ...suffix]) + (tools ? bytes(tools) : 0);
+  while (history.length > 1 && size() > MODEL_INPUT_BUDGET) history.shift();
+  if (size() > MODEL_INPUT_BUDGET) throw badRequest("The message is too long for the guide.", "context_too_large");
+  return [system, ...history, ...suffix];
+}
+
+/** Include JSON escaping/wrapper overhead, and never split a Unicode code point. */
+export function boundedToolResults(results: object[]): string[] {
+  const room = Math.floor(TOOL_RESULT_BUDGET / Math.max(results.length, 1));
+  return results.map((r) => {
+    const text = JSON.stringify(r);
+    if (Buffer.byteLength(text) <= room) return text;
+    let prefix = "";
+    for (const cp of text) {
+      if (bytes({ truncated: prefix + cp }) > room) break;
+      prefix += cp;
+    }
+    return JSON.stringify({ truncated: prefix });
+  });
 }
 
 const modelErr = (e: unknown) =>
@@ -125,11 +132,10 @@ export async function handleChat(ctx: Ctx, queue: GuideQueue, req: FastifyReques
           catch (e) { return { error: e instanceof ToolError ? e.message : "tool failed" }; }
         });
         const texts = boundedToolResults(results);
-        finalMessages = [
-          ...messages,
+        finalMessages = fitMessages(messages, [
           { role: "assistant", content: plan.content ?? "", tool_calls: calls },
           ...calls.map((c, i) => ({ role: "tool" as const, tool_name: c.function?.name, content: texts[i] })),
-        ];
+        ]);
       }
     } catch (e) {
       throw modelErr(e);

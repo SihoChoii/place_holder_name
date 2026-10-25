@@ -26,7 +26,7 @@ export class MediaStore {
         const p = join(dir, f);
         const st = statSync(p);
         if (!st.isFile() || now - st.mtimeMs < maxAgeMs) continue;
-        if (isTmp || (f.endsWith(".webp") && !referenced.has(f))) {
+        if (isTmp || f.endsWith(".webp.part") || (f.endsWith(".webp") && !referenced.has(f))) {
           rmSync(p, { force: true });
           removed++;
         }

@@ -122,6 +122,9 @@ const passed = results.every((r) => r.ok);
 const out = fromRoot("data/models-check.json");
 mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, JSON.stringify({ ...lock, passed, results }, null, 2));
-if (passed && process.argv.includes("--write-lock")) writeFileSync(fromRoot("docs/model-lock.json"), JSON.stringify({ ...lock, results }, null, 2) + "\n");
+if (passed && process.argv.includes("--write-lock")) {
+  mkdirSync(dirname(config.modelLockPath), { recursive: true });
+  writeFileSync(config.modelLockPath, JSON.stringify({ ...lock, results }, null, 2) + "\n");
+}
 console.log(`\n${results.filter((r) => r.ok).length}/${results.length} checks passed. Details: ${out}`);
 process.exit(passed ? 0 : 1);

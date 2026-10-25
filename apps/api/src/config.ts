@@ -13,6 +13,7 @@ export interface Config {
   mediaDir: string;
   backupDir: string;
   catalogDir: string;
+  modelLockPath: string;
   jwtSecret: string;
   cookieSecure: boolean;
   guide: { baseUrl: string; model: string; timeoutMs: number; think: boolean };
@@ -82,6 +83,7 @@ export function loadConfig(env: Env = process.env, { dotenv = true, partial = fa
     mediaDir: fromRoot(pick(env, "MEDIA_DIR") ?? "./data/media"),
     backupDir: fromRoot(pick(env, "BACKUP_DIR") ?? "./data/backups"),
     catalogDir: fromRoot(pick(env, "CATALOG_DIR") ?? "./catalog"),
+    modelLockPath: fromRoot(pick(env, "MODEL_LOCK_PATH") ?? "./docs/model-lock.json"),
     jwtSecret,
     cookieSecure: bool(env, "COOKIE_SECURE", false),
     guide: {

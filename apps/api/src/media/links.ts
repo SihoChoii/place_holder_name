@@ -35,7 +35,11 @@ function isPrivateIp(ip: string): boolean {
   }
   const v = ip.toLowerCase();
   if (v === "::" || v === "::1") return true;
-  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(v);
-  if (mapped) return isPrivateIp(mapped[1]);
+  // WHATWG URL canonicalizes mapped IPv4 into hexadecimal IPv6 before this check.
+  const mapped = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(v);
+  if (mapped) {
+    const hi = parseInt(mapped[1], 16), lo = parseInt(mapped[2], 16);
+    return isPrivateIp(`${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`);
+  }
   return /^(fc|fd|fe[89ab]|ff)/.test(v);
 }

@@ -101,6 +101,7 @@ export async function createTag(ctx: Ctx, store: MediaStore, req: FastifyRequest
     if (f.hyg_id && Number.isInteger(id) && !replayQ.get(viewer.id, requestKey)) checkOwner(id);
   });
   const finals: string[] = [];
+  const partials: string[] = [];
   try {
     const { hygId, note, links } = parseFields(fields, uploads.length);
     const fp = fingerprint({ op: "tag", hyg_id: hygId, note, links, images: uploads.map((u) => u.sha256) });
@@ -113,8 +114,10 @@ export async function createTag(ctx: Ctx, store: MediaStore, req: FastifyRequest
       if (u.size === 0) throw badRequest("An attachment is empty.", "invalid_image");
       const fileName = `${randomUUID()}.webp`;
       const out = store.path(fileName);
-      const meta = await normalizeImage(u.tmp, `${out}.part`);
-      await rename(`${out}.part`, out);
+      const partial = join(store.tmpDir, `${fileName}.part`);
+      partials.push(partial);
+      const meta = await normalizeImage(u.tmp, partial);
+      await rename(partial, out);
       finals.push(out);
       images.push({ fileName, sha256: u.sha256, ...meta });
     }
@@ -147,7 +150,7 @@ export async function createTag(ctx: Ctx, store: MediaStore, req: FastifyRequest
     await store.removeAll(finals);
     throw e;
   } finally {
-    await store.removeAll(uploads.map((u) => u.tmp));
+    await store.removeAll([...uploads.map((u) => u.tmp), ...partials]);
   }
 }
 
