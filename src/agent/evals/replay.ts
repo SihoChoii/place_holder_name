@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import Fastify from 'fastify';
 
 import { agentRoutes } from '../index.js';
+import { upsertBlurb } from '../memory/knowledge.js';
 import type { SseEvent } from '../types.js';
 import { isPlainObject, stableStringify } from '../util.js';
 import { createFixtureBackend, createFixtureDb, fixtureAuth } from './fixtures.js';
@@ -201,6 +202,12 @@ async function main(): Promise<void> {
     });
     const baseUrl = await app.listen({ port: 0, host: '127.0.0.1' });
     for (const scenario of loadGoldenCases()) {
+      if (scenario.id === 20) {
+        upsertBlurb(db, {
+          hyg_id: 91262, text: 'Vega is 25.04 light-years away.',
+          speech_script: null, model: 'fixture-cache', created_at: EVAL_NOW,
+        });
+      }
       const before = replay.consumed;
       try {
         const events = await runCase(baseUrl, scenario);

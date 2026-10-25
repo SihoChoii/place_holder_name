@@ -91,7 +91,7 @@ export async function* runAgent(
   let travel: Travel | undefined;
   let card: FactCard | undefined;
   const eagerMessages: ChatMessage[] = [];
-  const isTap = req.message === '' && selected !== undefined;
+  const isTap = (req.message === '' || ctx.demo) && selected !== undefined;
   const cached = isTap && selected !== undefined ? getBlurb(deps.db, selected) : null;
 
 
@@ -105,7 +105,8 @@ export async function* runAgent(
       queued_position: admission?.position ?? 0,
     },
   };
-  const deterministic = routeText(route) ?? (ctx.demo ? 'Demo mode is on. Select a star to explore its saved facts.' : null);
+  const deterministic = routeText(route) ?? (ctx.demo && selected === undefined
+    ? 'Select a star to explore its saved facts.' : null);
   if (deterministic !== null) {
     yield* emitComplete(deps, ctx, req.message, deterministic, [], selected);
     return;
@@ -134,7 +135,7 @@ export async function* runAgent(
         if (travel !== undefined) travels.set(travelOutcome.card.hyg_id, travel);
       }
     }
-    if (facts !== undefined && cached === null) {
+    if (facts !== undefined && cached === null && !ctx.demo) {
       card = factCard(facts, travel, 'live');
       yield { event: 'card', data: card };
     }
@@ -147,6 +148,10 @@ export async function* runAgent(
     }
     const text = cachedText ?? (facts === undefined ? NO_STAR_FALLBACK : templateText(facts, travel));
     yield* emitComplete(deps, ctx, req.message, text, facts === undefined ? [] : [facts.name], selected);
+    return;
+  }
+  if (ctx.demo) {
+    yield* emitFallback(deps, ctx, req.message, facts, travel, selected);
     return;
   }
 

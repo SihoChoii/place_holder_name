@@ -7,6 +7,7 @@ import Fastify from 'fastify';
 
 import { agentRoutes } from '../index.js';
 import { configFromEnv } from '../config.js';
+import { upsertBlurb } from '../memory/knowledge.js';
 import type { AgentOptions, SseEvent } from '../types.js';
 import { isPlainObject } from '../util.js';
 import { createFixtureBackend, createFixtureDb, fixtureAuth } from './fixtures.js';
@@ -256,6 +257,10 @@ function validateScenario(scenario: GoldenCase, events: SseEvent[], guideRequest
   if (done.length !== 1 || done[0]?.data.reason !== 'complete') {
     failures.push(`expected one complete terminal event, got ${JSON.stringify(done)}`);
   }
+  if (scenario.id === 20 && !events.some((event) => event.event === 'card'
+    && !('kind' in event.data) && event.data.hyg_id === 91262)) {
+    failures.push('demo tap must emit the selected star fact card without a model call');
+  }
   return failures;
 }
 
@@ -319,6 +324,12 @@ export async function runReliability(options: CliOptions): Promise<EvalScore> {
 
     server = await startEvaluationServer(environment);
     for (const scenario of scenarios) {
+      if (scenario.id === 20 && options.adapterPath === undefined) {
+        upsertBlurb(environment.options.db, {
+          hyg_id: 91262, text: 'Vega is 25.04 light-years away.',
+          speech_script: null, model: 'fixture-cache', created_at: EVAL_NOW,
+        });
+      }
       const guideBefore = guide?.requests.length ?? 0;
       if (guide !== null) {
         const replies = scenario.script.map(scriptResponse);
@@ -341,13 +352,13 @@ export async function runReliability(options: CliOptions): Promise<EvalScore> {
         const result = await evaluateScenario(server.baseUrl, environment.headersForUser(scenario.user), scenario);
         const guideRequests = (guide?.requests.length ?? 0) - guideBefore;
         const scenarioFailures = validateScenario(scenario, result.events, guideRequests);
-        if (scenario.expect.tools !== undefined && scenario.expect.tools.length > 0) {
+        if (scenario.expect.noTools !== true && scenario.expect.tools !== undefined && scenario.expect.tools.length > 0) {
           callCases++;
           if (scenarioFailures.length === 0) validCalls++;
         }
         if (scenarioFailures.length > 0) failures.push(`case ${scenario.id}: ${scenarioFailures.join('; ')}`);
       } catch (error) {
-        if (scenario.expect.tools !== undefined && scenario.expect.tools.length > 0) callCases++;
+        if (scenario.expect.noTools !== true && scenario.expect.tools !== undefined && scenario.expect.tools.length > 0) callCases++;
         failures.push(`case ${scenario.id}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }

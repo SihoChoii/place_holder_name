@@ -202,7 +202,7 @@
     "prompt": "",
     "user": "u1",
     "context": { "client": "ios", "mode": "local", "hyg_id": 91262, "hyg_ids": [91262], "demo": true },
-    "expect": { "skill": "demo_mode_narrator", "noTools": true },
+    "expect": { "skill": "demo_mode_narrator", "tools": ["get_star_facts", "compute_travel_time"], "noTools": true },
     "script": []
   }
 ]

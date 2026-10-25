@@ -255,3 +255,22 @@ test('repeating the eager travel call reuses its result without another card', a
   assert.deepEqual(frames.at(-1), { event: 'done', data: { reason: 'complete' } });
   agent.db.close();
 });
+
+test('demo taps deliver a cached fact card and narration with no model', async () => {
+  const guide = new FakeGuide([]);
+  const agent = deps(guide);
+  upsertBlurb(agent.db, {
+    hyg_id: VEGA, text: 'Vega is 25.04 light-years away.',
+    speech_script: null, model: 'fixture-cache', created_at: 1,
+  });
+  const ctx = context();
+  ctx.demo = true;
+  const frames = await collect(runAgent(agent, request(), ctx, skill('demo_mode_narrator'), null));
+  const card = frames.find((event) => event.event === 'card');
+  assert(card && card.event === 'card' && !('kind' in card.data));
+  assert.equal(card.data.hyg_id, VEGA);
+  assert.equal(card.data.source, 'cache');
+  assert.equal(guide.calls, 0);
+  assert.deepEqual(frames.at(-1), { event: 'done', data: { reason: 'complete' } });
+  agent.db.close();
+});
