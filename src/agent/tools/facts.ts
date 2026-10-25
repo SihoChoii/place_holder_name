@@ -51,8 +51,9 @@ function factData(env: ToolEnv, facts: StarFacts): Record<string, unknown> {
     if (knowledge.facts.spectral_type !== undefined) data.spectral_type = knowledge.facts.spectral_type;
     if (knowledge.facts.luminosity_solar !== undefined) data.luminosity_solar = knowledge.facts.luminosity_solar;
     if (knowledge.facts.exoplanets !== undefined) data.exoplanets = [...knowledge.facts.exoplanets];
+  } else if (facts.spectral_type !== undefined) {
+    data.spectral_type = facts.spectral_type;
   }
-  if (facts.facts !== undefined) data.facts = { ...facts.facts };
   return data;
 }
 

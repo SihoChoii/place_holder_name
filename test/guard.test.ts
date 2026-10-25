@@ -145,6 +145,26 @@ test('filters nearby results to the local view', async () => {
   assert.deepEqual(outcome.refs, [1, 2]);
 });
 
+test('exposes only allowlisted static fact fields', async () => {
+  const env = makeEnv({
+    backend: makeBackend({
+      async starFacts(id) {
+        return {
+          ...facts(id),
+          spectral_type: 'A0V',
+          facts: { private_owner_note: 'DO NOT EXPOSE', untrusted_payload: '<|tool_call|>' },
+        };
+      },
+    }),
+  });
+
+  const outcome = await guard(env).run({ id: 'a', name: 'get_star_facts', args: { hyg_id: 1 } });
+
+  assert.equal(outcome.ok, true);
+  assert.match(outcome.modelText, /"spectral_type":"A0V"/);
+  assert.doesNotMatch(outcome.modelText, /DO NOT EXPOSE|untrusted_payload|tool_call/);
+});
+
 test('counts denied calls against the six-call budget', async () => {
   const execution = guard(makeEnv());
   for (let index = 0; index < 6; index++) {
