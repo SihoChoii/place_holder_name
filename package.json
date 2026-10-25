@@ -1,0 +1,12 @@
+{
+  "name": "astral-harness",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "exports": { ".": { "types": "./dist/agent/index.d.ts", "import": "./dist/agent/index.js" }, "./moderation": { "types": "./dist/agent/moderation/pipeline.d.ts", "import": "./dist/agent/moderation/pipeline.js" }, "./prewarm": { "types": "./dist/agent/prewarm.d.ts", "import": "./dist/agent/prewarm.js" } },
+  "scripts": { "build": "tsc && node scripts/copy-assets.mjs", "test": "tsx --test test/*.test.ts", "smoke": "tsx scripts/smoke.ts", "eval:mock": "tsx src/agent/evals/reliability.ts --mock", "eval:live": "tsx src/agent/evals/reliability.ts", "eval:replay": "tsx src/agent/evals/replay.ts", "prewarm": "tsx scripts/prewarm.ts", "check:clef": "tsx scripts/check-clef.ts" },
+  "peerDependencies": { "better-sqlite3": "^13.0.3", "fastify": "^5.12.7" },
+  "dependencies": { "ajv": "^8.20.0", "yaml": "^2.9.1" },
+  "devDependencies": { "@types/better-sqlite3": "^9.6.0", "@types/node": "^24.19.2", "better-sqlite3": "^13.0.3", "fastify": "^5.12.7", "tsx": "^4.23.15", "typescript": "^5.9.3" }
+}
