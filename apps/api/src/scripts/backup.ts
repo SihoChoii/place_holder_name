@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { cpSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { openDatabase } from "@stargaze/db";
 import { loadConfig } from "../config.js";
@@ -17,7 +17,7 @@ await db.backup(join(dest, "stargaze.sqlite"));
 db.close();
 const mediaDest = join(dest, "media");
 mkdirSync(mediaDest, { recursive: true });
-const files = readdirSync(config.mediaDir).filter((f) => f.endsWith(".webp"));
+const files = existsSync(config.mediaDir) ? readdirSync(config.mediaDir).filter((f) => f.endsWith(".webp")) : [];
 const manifest = files.map((f) => {
   cpSync(join(config.mediaDir, f), join(mediaDest, f));
   return { file: f, bytes: statSync(join(mediaDest, f)).size, sha256: createHash("sha256").update(readFileSync(join(mediaDest, f))).digest("hex") };

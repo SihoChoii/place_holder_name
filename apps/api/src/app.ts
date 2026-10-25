@@ -72,6 +72,16 @@ export async function buildApp(config: Config, opts: BuildOptions = {}): Promise
     limits: { fileSize: LIMITS.maxImageBytes, files: LIMITS.maxAttachments, fields: 10, fieldSize: 16 * 1024, parts: 14 },
   });
   app.addSchema(schemas.ErrorBody);
+  // Bodyless POST/PUT/DELETE (claim, logout, reactions) often still carry Content-Type: application/json.
+  app.removeContentTypeParser("application/json");
+  app.addContentTypeParser("application/json", { parseAs: "string" }, (_req, body, done) => {
+    if (body === "") return done(null, undefined);
+    try {
+      done(null, JSON.parse(body as string));
+    } catch {
+      done(new AppError(400, "validation_failed", "Malformed JSON body."), undefined);
+    }
+  });
 
   app.decorateRequest("viewer", null as never);
   app.decorate("auth", async (req: FastifyRequest) => { req.viewer = authenticate(ctx, req); });

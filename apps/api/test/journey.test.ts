@@ -250,3 +250,19 @@ test("auth: cookie session, origin checks, bearer precedence, logout, expiry", a
   h.clock.t += 7 * 24 * 3600_000 + 1000;
   assert.equal((await app.inject({ url: "/api/me", headers: { cookie } })).statusCode, 401);
 });
+
+test("concurrent claims: same star by two users, two stars by one user; bodyless JSON posts", async (t) => {
+  const h = await harness();
+  t.after(() => h.close());
+  const app = h.server.app;
+  const [a, b] = [await signup(h, "ada"), await signup(h, "bob")];
+  const claim = (u: { auth: Record<string, string> }, star: number) =>
+    app.inject({ method: "POST", url: `/api/stars/${star}/claim`, headers: { ...u.auth, "idempotency-key": key(), "content-type": "application/json" }, payload: "" });
+  const sameStar = await Promise.all([claim(a, SIRIUS), claim(b, SIRIUS)]);
+  assert.deepEqual(sameStar.map((r) => r.statusCode).sort(), [201, 409]);
+  const winner = sameStar[0].statusCode === 201 ? b : a; // the loser can still claim
+  const twoStars = await Promise.all([claim(winner, CANOPUS), claim(winner, VEGA)]);
+  assert.deepEqual(twoStars.map((r) => r.statusCode).sort(), [201, 429]);
+  const bad = await app.inject({ method: "POST", url: "/api/view/content", headers: { ...a.auth, "content-type": "application/json" }, payload: "{oops" });
+  assert.equal(bad.json().error.code, "validation_failed");
+});

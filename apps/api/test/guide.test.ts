@@ -83,3 +83,28 @@ test("guide queue: 1 active + 2 waiting, extra rejected, cancelled waiters relea
   r2();
   assert.deepEqual(q.depth, { active: 0, waiting: 0 });
 });
+
+test("guide over real HTTP: deltas arrive incrementally and a client disconnect releases capacity", async (t) => {
+  const h = await harness();
+  t.after(() => h.close());
+  const a = await signup(h, "ada");
+  const url = await h.server.app.listen({ port: 0, host: "127.0.0.1" });
+  const body = JSON.stringify({ messages: [{ role: "user", content: "hi" }], mode: "explore" });
+  const headers = { ...a.auth, "content-type": "application/json" };
+  const res = await fetch(`${url}/api/agent/chat`, { method: "POST", headers, body });
+  let chunks = 0;
+  for await (const _ of res.body as unknown as AsyncIterable<Uint8Array>) chunks++;
+  assert.ok(chunks > 1, `expected incremental chunks, got ${chunks}`);
+  // abort mid-request while the model hangs; capacity must be released for the next request
+  h.fake.mode = "hang";
+  const ac = new AbortController();
+  const pending = fetch(`${url}/api/agent/chat`, { method: "POST", headers, body, signal: ac.signal }).catch(() => null);
+  await new Promise((r) => setTimeout(r, 200));
+  ac.abort();
+  await pending;
+  await new Promise((r) => setTimeout(r, 200));
+  h.fake.mode = "ok";
+  const again = await fetch(`${url}/api/agent/chat`, { method: "POST", headers, body });
+  assert.equal(again.status, 200);
+  assert.match(await again.text(), /event: done/);
+});

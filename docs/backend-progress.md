@@ -11,7 +11,7 @@ Last updated 2026-10-25 ~16:00 PDT on Siho's Mac (Node v24.2.0, pnpm 9.15.0, mac
 | 00 Inspect | done | — | — | — | — | Baseline below |
 | 01 Inference machines | **blocked** | — | pending | — | — | Gemma/Clef host addresses unknown to the backend agent. `pnpm models:check` + `docs/model-preflight.md` ready |
 | 02 Runtime/build | done | pass | — | — | — | Fastify replaces Hono; Prisma/Postgres/Docker removed; built API started and `/api/health/live` answered; migrate from repo root and `packages/db` hit the same DB |
-| 03 Contracts | done | pass | — | — | — | `docs/api-contract.md`, `packages/shared` schemas/types/fixtures (fixtures validated by test), `docs/openapi.json` generated (27 paths) |
+| 03 Contracts | done | pass (TS + Swift) | — | — | — | `docs/api-contract.md`, `packages/shared` schemas/types/fixtures (validated by test) + Swift Codable models `packages/shared/swift/` (decode all fixtures), `docs/openapi.json` generated (27 paths) |
 | 04 Database | done | pass | — | — | — | `packages/db/migrations/001_initial.sql` (7 tables), WAL/FK/busy timeout, checksum-guarded migrations, rollback test |
 | 05 Auth | done (backend) | pass | — | pending | pending | scrypt N=2^17, 7-day JWT, `st_session` cookie, Origin checks, bearer precedence, rate limits. Web proxy replaced by same-origin static serving (see deviations) |
 | 06 Catalog/claims | done | pass | — | — | — | Pinned catalog sha256-checked at startup; atomic claim; cooldown boundary tested with injected clock |
@@ -23,7 +23,7 @@ Last updated 2026-10-25 ~16:00 PDT on Siho's Mac (Node v24.2.0, pnpm 9.15.0, mac
 | 12 Browse/public | done | pass | — | pending | — | Feed, search (escaped LIKE), all `/public/*` routes |
 | 13 Guide | done (code) | pass | **pending** | pending | pending | Planner + ≤3 tools + streamed final; queue 1+2; 60 s deadline; disconnect cancel. Live: needs Gemma host |
 | 14 Clients | not started by backend | — | — | — | — | Web = Vite SPA owned by Frontend Engineer (branch `web/app`); iOS owned by iOS Developer. Contract + fixtures delivered |
-| 15 Operations | done (scripts) | partial | — | — | — | setup/start/migrate/seed/smoke/models:check/moderation:*/db:backup/openapi + `docs/operations.md`. Backup restore drill not yet run |
+| 15 Operations | done (scripts) | pass | pending | — | — | setup/start/migrate/seed/smoke/models:check/moderation:*/db:backup/openapi + `docs/operations.md`; backup→restore drill passed; duplicate-process guard verified. `models:check`/`smoke` against real hosts pending |
 | 16 Release | pending | — | pending | pending | pending | Needs model hosts, browser and phone on the LAN |
 
 ## Baseline (step 00, 15:31 PDT)

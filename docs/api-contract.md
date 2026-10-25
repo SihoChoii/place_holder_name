@@ -3,7 +3,8 @@
 Status: **frozen for client work** (backend branch `backend/api`); all routes below are implemented and covered by
 automated tests (fake model servers). Live model and device checks are tracked in `docs/backend-progress.md`. Implementation status per route is in
 [route-matrix.md](route-matrix.md). Machine-readable JSON Schemas live in `packages/shared/src/schemas.ts`
-(TypeScript types in `packages/shared/src/types.ts`); example payloads in `packages/shared/fixtures/`.
+(TypeScript types in `packages/shared/src/types.ts`, Swift Codable models in `packages/shared/swift/StarTaggerAPI.swift`);
+example payloads in `packages/shared/fixtures/`.
 `docs/openapi.json` is generated from the implemented routes (`pnpm openapi`).
 
 ## Conventions
