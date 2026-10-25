@@ -26,15 +26,27 @@ interface MessageRow {
   referenced_hyg_ids: string | null;
 }
 
-function knownRefsInView(serializedRefs: string | null, inView: ReadonlySet<number>): boolean {
-  if (serializedRefs === null) return false;
+function parseRefs(serializedRefs: string | null): number[] | null {
+  if (serializedRefs === null) return null;
   let parsed: unknown;
   try {
     parsed = JSON.parse(serializedRefs);
   } catch {
-    return false;
+    return null;
   }
-  return Array.isArray(parsed) && parsed.every((id) => Number.isInteger(id) && id >= 0 && inView.has(id));
+  if (!Array.isArray(parsed)) return null;
+
+  const refs: number[] = [];
+  for (const id of parsed) {
+    if (!Number.isSafeInteger(id) || id < 0) return null;
+    refs.push(id);
+  }
+  return refs;
+}
+
+function knownRefsInView(serializedRefs: string | null, inView: ReadonlySet<number>): boolean {
+  const refs = parseRefs(serializedRefs);
+  return refs !== null && refs.every((id) => inView.has(id));
 }
 
 function refsJson(refs: readonly number[]): string {
@@ -59,13 +71,13 @@ export class SessionStore {
     userId: string,
     scope: Scope,
     view: { mode: Mode; inView: ReadonlySet<number> },
-  ): { turns: Turn[]; summary: string | null } {
+  ): { turns: Turn[]; summary: string | null; refs: number[] } {
     const session = this.db.prepare(`
       SELECT id, summary, summary_hyg_ids, turns
       FROM agent_sessions
-      WHERE user_id = ? AND scope = ?
-    `).get(userId, scope) as SessionRow | undefined;
-    if (session === undefined) return { turns: [], summary: null };
+      WHERE user_id = ? AND scope = ? AND updated_at >= ?
+    `).get(userId, scope, this.now() - SESSION_RETENTION_MS) as SessionRow | undefined;
+    if (session === undefined) return { turns: [], summary: null, refs: [] };
 
     const messages = this.db.prepare(`
       SELECT role, content, referenced_hyg_ids
@@ -74,7 +86,7 @@ export class SessionStore {
       ORDER BY created_at ASC, rowid ASC
     `).all(session.id) as MessageRow[];
     const local = view.mode === 'local';
-    const eligible: Turn[] = [];
+    const eligible: Array<Turn & { refs: number[] }> = [];
     let pendingUser: MessageRow | null = null;
 
     for (const message of messages) {
@@ -83,6 +95,9 @@ export class SessionStore {
         continue;
       }
       if (pendingUser === null) continue;
+
+      const userRefs = parseRefs(pendingUser.referenced_hyg_ids);
+      const assistantRefs = parseRefs(message.referenced_hyg_ids);
       if (
         !local
         || (
@@ -90,15 +105,33 @@ export class SessionStore {
           && knownRefsInView(message.referenced_hyg_ids, view.inView)
         )
       ) {
-        eligible.push({ user: pendingUser.content, assistant: message.content });
+        eligible.push({
+          user: pendingUser.content,
+          assistant: message.content,
+          refs: [...(userRefs ?? []), ...(assistantRefs ?? [])],
+        });
       }
       pendingUser = null;
     }
 
+    const summaryRefs = parseRefs(session.summary_hyg_ids);
     const summary = session.summary === null || (
       local && !knownRefsInView(session.summary_hyg_ids, view.inView)
     ) ? null : session.summary;
-    return { turns: eligible.slice(-4), summary };
+    const recent = eligible.slice(-4);
+    const refs = new Set<number>();
+    for (const turn of recent) {
+      for (const ref of turn.refs) refs.add(ref);
+    }
+    if (summary !== null && summaryRefs !== null) {
+      for (const ref of summaryRefs) refs.add(ref);
+    }
+
+    return {
+      turns: recent.map(({ user, assistant }) => ({ user, assistant })),
+      summary,
+      refs: [...refs],
+    };
   }
 
   save(

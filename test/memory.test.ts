@@ -53,9 +53,9 @@ test('migrates message provenance and excludes unknown local history', () => {
     topic: 'question',
     speedC: 0.9,
   });
-  assert.deepEqual(store.load('user-1', 'local', { mode: 'local', inView: new Set() }).turns, [
-    { user: 'new question', assistant: 'new answer' },
-  ]);
+  const loaded = store.load('user-1', 'local', { mode: 'local', inView: new Set() });
+  assert.deepEqual(loaded.turns, [{ user: 'new question', assistant: 'new answer' }]);
+  assert.deepEqual(loaded.refs, []);
 });
 
 test('retains local history while all referenced stars remain visible', () => {
@@ -71,13 +71,32 @@ test('retains local history while all referenced stars remain visible', () => {
     speedC: 0.9,
   });
 
-  assert.equal(
-    store.load('user-1', 'local', { mode: 'local', inView: new Set([91262, 1]) }).turns.length,
-    1,
-  );
+  const visible = store.load('user-1', 'local', { mode: 'local', inView: new Set([91262, 1]) });
+  assert.equal(visible.turns.length, 1);
+  assert.deepEqual(visible.refs, [91262]);
   assert.equal(
     store.load('user-1', 'local', { mode: 'local', inView: new Set([1]) }).turns.length,
     0,
+  );
+});
+
+test('does not load expired sessions before cleanup runs', () => {
+  const db = createDatabase();
+  applySchema(db);
+  let now = 1_000;
+  const store = new SessionStore(db, () => now);
+  store.save('user-1', 'explore', {
+    user: 'old question',
+    assistant: 'old answer',
+    refs: [42],
+    topic: 'explore',
+    speedC: 0.9,
+  });
+
+  now += 7 * 24 * 60 * 60 * 1_000 + 1;
+  assert.deepEqual(
+    store.load('user-1', 'explore', { mode: 'explore', inView: new Set() }),
+    { turns: [], summary: null, refs: [] },
   );
 });
 
