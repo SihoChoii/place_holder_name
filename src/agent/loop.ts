@@ -15,7 +15,7 @@ import type { Ticket } from './model/queue.js';
 import { parseReply } from './model/parse.js';
 import { createModerator, type Moderator } from './moderation/pipeline.js';
 import { NumberLedger } from './numbers.js';
-import { assemble } from './prompts/assemble.js';
+import { BUDGET, assemble, estimateMessages } from './prompts/assemble.js';
 import type { Route, Skill } from './skills/router.js';
 import { toSpeechScript } from './speech/script.js';
 import { saveSpeechScript } from './speech/store.js';
@@ -82,8 +82,10 @@ export async function* runAgent(
     now: deps.now,
     facts: new Map(),
   };
-  const guard = new Guard(toolEnv, allowed, ledger);
   const selected = ctx.selected;
+  const guard = new Guard(toolEnv, allowed, ledger);
+  const references = new Set<number>(selected === undefined ? [] : [selected]);
+  for (const star of deps.catalog.namesIn(req.message)) references.add(star.hyg_id);
   let facts: StarFacts | undefined;
   let travel: Travel | undefined;
   let card: FactCard | undefined;
@@ -102,8 +104,7 @@ export async function* runAgent(
       queued_position: admission?.position ?? 0,
     },
   };
-
-  const deterministic = routeText(route);
+  const deterministic = routeText(route) ?? (ctx.demo ? 'Demo mode is on. Select a star to explore its saved facts.' : null);
   if (deterministic !== null) {
     yield* emitComplete(deps, ctx, req.message, deterministic, [], selected);
     return;
@@ -140,9 +141,12 @@ export async function* runAgent(
   }
 
   const recentNames = deps.sessions.recentStars(ctx.userId, 5)
+    .filter((id) => ctx.mode !== 'local' || ctx.inView.has(id))
     .map((id) => deps.catalog.get(id)?.name)
     .filter((name): name is string => name !== undefined);
-  const claimedNames = (await deps.backend.claimedStars(ctx.userId, 5, ctx.signal)).map((star) => star.name);
+  const claimedNames = (await deps.backend.claimedStars(ctx.userId, 5, ctx.signal))
+    .filter((star) => ctx.mode !== 'local' || ctx.inView.has(star.hyg_id))
+    .map((star) => star.name);
   const skyNames = deps.catalog.brightest(ctx.inView, 20).map((star) => star.name);
   const memory = deps.sessions.load(ctx.userId, scopeFor(ctx), { mode: ctx.mode, inView: ctx.inView });
   const openTools = toOpenAiTools(allowed);
@@ -163,15 +167,22 @@ export async function* runAgent(
     return;
   }
   messages.push(...eagerMessages);
-
+  const preservedMessageCount = messages.length;
   let malformed = 0;
-  let completed = false;
   try {
     if (admission !== null) await admission.acquire(ctx.signal);
     for (let round = 0; round < LIMITS.maxRounds; round++) {
       const finalRound = round === LIMITS.maxRounds - 1 || guard.exhausted;
       const roundTools = finalRound ? [] : openTools;
       if (finalRound) messages.push({ role: 'user', content: 'Answer now using the available tool results; do not call tools.' });
+      while (estimateMessages(messages, roundTools) > BUDGET.total && messages.length >= preservedMessageCount + 2) {
+        messages.splice(preservedMessageCount, 2);
+      }
+      if (estimateMessages(messages, roundTools) > BUDGET.total) {
+        yield* emitFallback(deps, ctx, req.message, facts, travel, selected);
+        return;
+      }
+
       let reply: ChatMessage;
       try {
         reply = await deps.guide.chat(messages, roundTools, ctx.signal, { maxTokens: Math.min(deps.cfg.maxTokens, route.skill.maxTokens) });
@@ -195,13 +206,13 @@ export async function* runAgent(
         continue;
       }
       if (parsed.kind === 'text') {
-        const numeric = ledger.check(parsed.text);
-        if (!numeric.ok) {
+        if (!ledger.check(parsed.text).ok) {
           yield* emitFallback(deps, ctx, req.message, facts, travel, selected);
           return;
         }
-        yield* emitComplete(deps, ctx, req.message, parsed.text, deps.catalog.namesIn(parsed.text).map((star) => star.name), selected, guard);
-        completed = true;
+        const namedStars = deps.catalog.namesIn(parsed.text);
+        for (const star of namedStars) references.add(star.hyg_id);
+        yield* emitComplete(deps, ctx, req.message, parsed.text, namedStars.map((star) => star.name), selected, [...references]);
         return;
       }
       if (finalRound) {
@@ -209,20 +220,30 @@ export async function* runAgent(
         return;
       }
 
-      messages.push({ role: 'assistant', content: reply.content, tool_calls: reply.tool_calls });
+      messages.push({
+        role: 'assistant',
+        content: reply.content,
+        tool_calls: parsed.calls.map((call) => ({
+          id: call.id,
+          type: 'function',
+          function: { name: call.name, arguments: JSON.stringify(call.args) },
+        })),
+      });
       for (const call of parsed.calls) {
         yield { event: 'tool', data: { name: call.name, status: 'start' } };
         const outcome = await guard.run(call);
         yield { event: 'tool', data: { name: call.name, status: outcome.ok ? 'end' : 'blocked' } };
+        for (const ref of outcome.refs) references.add(ref);
+        const hygId = call.args.hyg_id;
+        if (typeof hygId === 'number') facts = toolEnv.facts.get(hygId) ?? facts;
+        if (outcome.card !== undefined && !('kind' in outcome.card)) travel = outcome.card.travel ?? travel;
         if (outcome.card !== undefined && !outcome.reused) yield { event: 'card', data: outcome.card };
         messages.push({ role: 'tool', tool_call_id: call.id, content: outcome.modelText });
       }
     }
+    yield* emitFallback(deps, ctx, req.message, facts, travel, selected);
   } finally {
     admission?.release();
-    if (!completed) {
-      // The return paths above already emitted exactly one terminal event.
-    }
   }
 }
 
@@ -236,7 +257,7 @@ async function* emitFallback(
 ): AsyncGenerator<SseEvent> {
   const fallback = fallbackFor(facts, travel);
   if (fallback.card !== undefined) yield { event: 'card', data: fallback.card };
-  yield* emitTerminal(deps, ctx, user, fallback.text, facts === undefined ? [] : [facts.name], selected, 'fallback');
+  yield* emitTerminal(deps, ctx, user, fallback.text, facts === undefined ? [] : [facts.name], selected, [], 'fallback');
 }
 
 async function* emitComplete(
@@ -246,9 +267,9 @@ async function* emitComplete(
   text: string,
   names: readonly string[],
   selected: number | undefined,
-  guard?: Guard,
+  refs: readonly number[] = selected === undefined ? [] : [selected],
 ): AsyncGenerator<SseEvent> {
-  yield* emitTerminal(deps, ctx, user, text, names, selected, 'complete', guard);
+  yield* emitTerminal(deps, ctx, user, text, names, selected, refs, 'complete');
 }
 
 async function* emitTerminal(
@@ -258,17 +279,18 @@ async function* emitTerminal(
   text: string,
   names: readonly string[],
   selected: number | undefined,
+  refs: readonly number[],
   reason: 'complete' | 'fallback',
-  guard?: Guard,
 ): AsyncGenerator<SseEvent> {
   for (const part of chunk(text)) yield { event: 'delta', data: { text: part } };
   if (text !== '') {
     const script = toSpeechScript(text, names);
+    ctx.signal.throwIfAborted();
     const speechId = saveSpeechScript(deps.db, { userId: ctx.userId, hygId: selected, script, now: deps.now() });
     yield { event: 'speech', data: { speech_id: speechId, script, voice: getPrefs(deps.db, ctx.userId).voice, audio_url: null } };
   }
   if (reason === 'complete') {
-    const refs = selected === undefined ? [] : [selected];
+    ctx.signal.throwIfAborted();
     deps.sessions.save(ctx.userId, scopeFor(ctx), {
       user,
       assistant: text,
@@ -277,8 +299,10 @@ async function* emitTerminal(
       ...(selected === undefined ? {} : { starName: deps.catalog.get(selected)?.name }),
       speedC: getPrefs(deps.db, ctx.userId).speed_c,
     });
-    if (selected !== undefined) deps.sessions.recordRecentStar(ctx.userId, selected);
+    if (selected !== undefined) {
+      ctx.signal.throwIfAborted();
+      deps.sessions.recordRecentStar(ctx.userId, selected);
+    }
   }
-  void guard;
   yield { event: 'done', data: { reason } };
 }

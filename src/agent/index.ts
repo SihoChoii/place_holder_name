@@ -7,18 +7,19 @@ import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { CatalogIndex } from './catalog.js';
 import { resolveConfig, LIMITS } from './config.js';
 import { parseChatBody } from './context.js';
+import { applySchema } from './memory/db.js';
 import { Digest } from './memory/digest.js';
 import { SessionStore } from './memory/sessions.js';
 import { SlidingWindowLimiter } from './limits.js';
 import { runAgent } from './loop.js';
 import { createGuideClient } from './model/gemma.js';
 import { FifoLimiter, type Ticket } from './model/queue.js';
+import { chooseSkill } from './moderation/clef.js';
 import { createModerator } from './moderation/pipeline.js';
 import { loadSkills, selectRoute } from './skills/router.js';
 import { TOOLS } from './tools/registry.js';
 import { getBlurb } from './memory/knowledge.js';
-import type { AgentOptions, RequestCtx, SseEvent } from './types.js';
-
+import type { AgentOptions, BackendReads, RequestCtx, SseEvent } from './types.js';
 export { ConfigError, configFromEnv, resolveConfig } from './config.js';
 export { createModerator } from './moderation/pipeline.js';
 export type {
@@ -40,8 +41,21 @@ export type {
   Travel,
 } from './types.js';
 
-const registered = new WeakSet<FastifyInstance>();
+let registeredInstance: FastifyInstance | null = null;
 
+const requiredBackendMethods: Array<keyof BackendReads> = [
+  'starFacts',
+  'travelTime',
+  'viewContent',
+  'exploreSearch',
+  'starDetail',
+  'nextClaimAt',
+  'listComments',
+  'communityFeed',
+  'tagTarget',
+  'catalog',
+  'claimedStars',
+];
 function eventFrame(event: SseEvent): string {
   return `event: ${event.event}\ndata: ${JSON.stringify(event.data)}\n\n`;
 }
@@ -67,15 +81,18 @@ async function writeFrame(raw: ServerResponse, event: SseEvent, signal: AbortSig
 
 /** Fastify route plugin for the bounded Star Tagger agent protocol. */
 export const agentRoutes: FastifyPluginAsync<AgentOptions> = async (app, options) => {
-  if (registered.has(app)) throw new Error('agentRoutes may only be registered once per Fastify instance');
-  registered.add(app);
+  if (registeredInstance !== null) throw new Error('agentRoutes may only be registered once at a time');
+  registeredInstance = app;
   try {
+    for (const method of requiredBackendMethods) {
+      if (typeof options.backend[method] !== 'function') throw new Error(`backend.${method} must be a function`);
+    }
+    applySchema(options.db);
     const cfg = resolveConfig(options.config);
     const now = options.now ?? Date.now;
     const fetchImpl = options.fetch ?? globalThis.fetch;
     const catalog = new CatalogIndex(await options.backend.catalog(new AbortController().signal));
-    const modelLimiter = new FifoLimiter(1, cfg.queueDepth);
-    const guide = createGuideClient(cfg, fetchImpl, modelLimiter);
+    const guide = createGuideClient(cfg, fetchImpl, new FifoLimiter(1, cfg.queueDepth));
     const moderator = createModerator(cfg, fetchImpl);
     const digest = new Digest(options.db, options.backend, now);
     const sessions = new SessionStore(options.db, now);
@@ -91,13 +108,12 @@ export const agentRoutes: FastifyPluginAsync<AgentOptions> = async (app, options
       for (const controller of active.values()) controller.abort(new Error('server closing'));
       active.clear();
       digest.stop();
-      registered.delete(app);
+      if (registeredInstance === app) registeredInstance = null;
     });
 
     app.post('/agent/chat', { bodyLimit: 131_072, preHandler: options.authenticate }, async (request, reply) => {
       const parsed = parseChatBody(request.body);
       if (parsed === null) return reply.code(400).send({ error: 'bad_context' });
-
       const userId = options.getUserId(request);
       if (active.has(userId)) return reply.code(409).send({ error: 'in_flight' });
       const rateResult = rate.check(userId);
@@ -130,9 +146,20 @@ export const agentRoutes: FastifyPluginAsync<AgentOptions> = async (app, options
           demo: parsed.context.demo,
           signal: controller.signal,
         };
-        const route = await selectRoute(parsed.message, ctx, skills, { exoplanets: catalog.hasExoplanets });
+        const route = await selectRoute(parsed.message, ctx, skills, {
+          exoplanets: catalog.hasExoplanets,
+          classify: (message, candidates) => chooseSkill(
+            cfg.clefBaseUrl,
+            cfg.clefModel,
+            message,
+            candidates,
+            ctx.signal,
+            fetchImpl,
+            LIMITS.clefRoutingMs,
+          ),
+        });
         const cacheOnly = parsed.message === '' && ctx.selected !== undefined && getBlurb(options.db, ctx.selected) !== null;
-        if (route.kind === 'skill' && !cacheOnly) {
+        if (route.kind === 'skill' && !cacheOnly && !ctx.demo) {
           ticket = admission.reserve();
           if (ticket === null) return reply.code(503).send({ error: 'queue_full' });
         }
@@ -179,7 +206,7 @@ export const agentRoutes: FastifyPluginAsync<AgentOptions> = async (app, options
       }
     });
   } catch (error) {
-    registered.delete(app);
+    if (registeredInstance === app) registeredInstance = null;
     throw error;
   }
 };
