@@ -4,7 +4,7 @@ Verification columns: **auto** = automated tests (`pnpm test`: temp DB/media, fa
 `apps/api/test/fixtures/`), **live** = real Gemma/Clef hosts, **browser** = real browser through the one origin,
 **iphone** = physical iPhone. `—` = not applicable. `pending` = not run yet (dependency in Notes).
 
-Last updated 2026-10-25 ~16:00 PDT on Siho's Mac (Node v24.2.0, pnpm 9.15.0, macOS 26.5 arm64).
+Last updated 2026-10-25 15:59 PDT on Siho's Mac (Node v24.2.0, pnpm 9.15.0, macOS 26.5 arm64).
 
 | Step | Status | auto | live | browser | iphone | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
