@@ -1,7 +1,8 @@
 import { spokenNumber } from '../numbers.js';
 
 const INVITATION = ' Want to know more? Just ask.';
-const NUMBER = /\b\d[\d,]*(?:\.\d+)?\b/g;
+const DATE = /\b\d{4}-\d{2}-\d{2}\b/g;
+const NUMBER = /(?<![\w-])-?\d[\d,]*(?:\.\d+)?/g;
 
 function escapePattern(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -56,7 +57,9 @@ function cutAtWord(text: string, maxChars: number): string {
 
 export function toSpeechScript(text: string, protectedNames: readonly string[]): string {
   const protectedText = protectNames(text, protectedNames);
-  const stripped = stripMarkdown(protectedText.text).replace(NUMBER, (token) => spokenNumber(token));
+  const stripped = stripMarkdown(protectedText.text)
+    .replace(DATE, (date) => date.split('-').map(spokenNumber).join('-'))
+    .replace(NUMBER, (token) => spokenNumber(token));
   const restored = protectedText.restore(stripped);
   const paused = addPause(restored).replace(/\[pause\].*\[pause\]/g, '[pause]');
   const base = cutAtWord(paused, 600 - INVITATION.length);

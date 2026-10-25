@@ -7,9 +7,10 @@ const TENS_NAMES = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seve
 const WORD_VALUES: Record<string, number> = Object.fromEntries(SMALL_NAMES.map((word, value) => [word, value]));
 for (let value = 2; value < TENS_NAMES.length; value++) WORD_VALUES[TENS_NAMES[value]] = value * 10;
 
-const NUMBER_TOKEN = /\d[\d,]*(?:\.\d+)?/g;
+const NUMBER_TOKEN = /(?<![\w-])-?\d[\d,]*(?:\.\d+)?/g;
 const QUANTITY = '(?:years?|light|ly|parsecs?|stars?|minutes?|seconds?|hours?|days?|percent|times|degrees?|planets?|comments?|posts?|miles?|kilometers?)';
 const WRITTEN_QUANTITY = new RegExp(`\\b((?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|and|[-\\s])+?)\\s+${QUANTITY}\\b`, 'gi');
+const DATE_TOKEN = /\b(\d{4})-(\d{2})-(\d{2})\b/g;
 
 function numberVariants(value: number): string[] {
   const variants = new Set<string>();
@@ -26,6 +27,14 @@ function numberVariants(value: number): string[] {
 function normalizedNumber(token: string): string {
   return token.replaceAll(',', '');
 }
+function numericTokens(text: string): string[] {
+  const tokens = [...text.matchAll(NUMBER_TOKEN)].map((match) => match[0]);
+  for (const date of text.matchAll(DATE_TOKEN)) {
+    tokens.push(date[1], date[2], date[3]);
+  }
+  return tokens;
+}
+
 
 function parseWrittenNumber(phrase: string): number | null {
   let total = 0;
@@ -84,9 +93,9 @@ export class NumberLedger {
   }
 
   addText(text: string): void {
-    for (const token of text.matchAll(NUMBER_TOKEN)) {
-      this.lexemes.add(normalizedNumber(token[0]));
-      const numeric = Number(normalizedNumber(token[0]));
+    for (const token of numericTokens(text)) {
+      this.lexemes.add(normalizedNumber(token));
+      const numeric = Number(normalizedNumber(token));
       if (Number.isFinite(numeric)) this.values.add(numeric);
     }
   }
@@ -101,8 +110,7 @@ export class NumberLedger {
       inspect = inspect.replace(new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), ' ');
     }
     const offending = new Set<string>();
-    for (const match of inspect.matchAll(NUMBER_TOKEN)) {
-      const token = match[0];
+    for (const token of numericTokens(inspect)) {
       if (!this.lexemes.has(normalizedNumber(token))) offending.add(token);
     }
     for (const match of inspect.matchAll(WRITTEN_QUANTITY)) {
