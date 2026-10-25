@@ -80,8 +80,8 @@ try {
       method: "POST", headers: { authorization: `Bearer ${b}`, "content-type": "application/json" },
       body: JSON.stringify({ messages: [{ role: "user", content: "What is this star and how far away is it?" }], mode: "local", scope_hyg_ids: [hyg], selected_hyg_id: hyg }),
     });
-    expect(res.status === 200, `chat ${res.status} ${await res.text()}`);
     const text = await res.text();
+    expect(res.status === 200, `chat ${res.status} ${text.slice(0, 300)}`);
     expect(/event: done/.test(text), `no done event: ${text.slice(0, 300)}`);
   });
 } catch {

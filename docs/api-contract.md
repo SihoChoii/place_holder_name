@@ -1,6 +1,7 @@
 # Star Tagger API contract (v1)
 
-Status: **frozen for client work** (backend branch `backend/api`). Implementation status per route is in
+Status: **frozen for client work** (backend branch `backend/api`); all routes below are implemented and covered by
+automated tests (fake model servers). Live model and device checks are tracked in `docs/backend-progress.md`. Implementation status per route is in
 [route-matrix.md](route-matrix.md). Machine-readable JSON Schemas live in `packages/shared/src/schemas.ts`
 (TypeScript types in `packages/shared/src/types.ts`); example payloads in `packages/shared/fixtures/`.
 `docs/openapi.json` is generated from the implemented routes (`pnpm openapi`).
@@ -258,7 +259,7 @@ Fixtures: `chat.request.json`, `chat.stream.sse.txt`, `chat.stream-error.sse.txt
 | Method & path | Success |
 | --- | --- |
 | `GET /health/live` | `200 { status: "ok" }` |
-| `GET /health/ready` | `200 { status: "ok"|"degraded", components: { database, media, guide, moderation: { status: "ok"|"unavailable"|"disabled"|"unknown", checked_at, detail? } } }` (cached; models probed in the background) |
+| `GET /health/ready` | `200 { status: "ok"|"degraded", components: { database, media, guide, moderation: { status: "ok"|"unavailable"|"disabled"|"unknown", checked_at, detail? } } }` (model status cached; probed every 60 s in the background). `503` with the same body only when the database or media directory is unusable. A degraded guide/moderation never blocks other routes. |
 
 ## Fixture index (`packages/shared/fixtures/`)
 

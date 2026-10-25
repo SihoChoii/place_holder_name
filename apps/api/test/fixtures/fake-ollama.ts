@@ -12,7 +12,7 @@ export interface FakeOllama {
   close(): Promise<void>;
 }
 
-export async function startFakeOllama(): Promise<FakeOllama> {
+export async function startFakeOllama(port = 0): Promise<FakeOllama> {
   const fake: FakeOllama = { url: "", mode: "ok", calls: [], close: async () => {} };
   const server: Server = createServer(async (req, res) => {
     let raw = "";
@@ -57,7 +57,7 @@ export async function startFakeOllama(): Promise<FakeOllama> {
     }
     res.writeHead(404).end();
   });
-  await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
+  await new Promise<void>((r) => server.listen(port, "127.0.0.1", r));
   fake.url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   fake.close = () => new Promise((r) => { server.closeAllConnections(); server.close(() => r()); });
   return fake;
