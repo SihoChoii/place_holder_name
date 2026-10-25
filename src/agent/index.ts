@@ -103,14 +103,21 @@ export const agentRoutes: FastifyPluginAsync<AgentOptions> = async (app, options
     const digest = new Digest(options.db, options.backend, now);
     const sessions = new SessionStore(options.db, now);
     sessions.purgeExpired();
-    const retentionTimer = setInterval(() => sessions.purgeExpired(), 60 * 60_000);
-    retentionTimer.unref();
+    let retentionTimer: NodeJS.Timeout | undefined;
     const skills = loadSkills(new URL('./skills/', import.meta.url), new Set(TOOLS.map((tool) => tool.name)));
     const admission = new FifoLimiter(1, cfg.queueDepth);
     const rate = new SlidingWindowLimiter(LIMITS.chatsPerWindow, LIMITS.windowMs, now);
     const active = new Map<string, AbortController>();
 
     app.addHook('onReady', async () => {
+      retentionTimer = setInterval(() => {
+        try {
+          sessions.purgeExpired();
+        } catch (error) {
+          app.log.warn({ err: error }, 'Agent retention cleanup failed; retrying next interval');
+        }
+      }, 60 * 60_000);
+      retentionTimer.unref();
       digest.start();
     });
     app.addHook('onClose', async () => {

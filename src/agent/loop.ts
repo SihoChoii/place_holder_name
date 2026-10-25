@@ -120,12 +120,13 @@ export async function* runAgent(
 
     if (facts !== undefined && facts.distance_ly !== null) {
       yield { event: 'tool', data: { name: 'compute_travel_time', status: 'start' } };
-      const travelOutcome = await guard.runEager('compute_travel_time', { hyg_id: selected });
+      const eagerTravelArgs = { hyg_id: selected, speed_c: prefs.speed_c };
+      const travelOutcome = await guard.runEager('compute_travel_time', eagerTravelArgs);
       yield { event: 'tool', data: { name: 'compute_travel_time', status: travelOutcome.ok ? 'end' : 'blocked' } };
       eagerMessages.push(...toolExchange(
         'compute_travel_time',
         'eager_travel',
-        { hyg_id: selected, speed_c: prefs.speed_c },
+        eagerTravelArgs,
         travelOutcome,
       ));
       if (travelOutcome.card !== undefined && !('kind' in travelOutcome.card)) {

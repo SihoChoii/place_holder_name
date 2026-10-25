@@ -230,3 +230,28 @@ test('an unavailable profile helper does not prevent a complete answer', async (
   assert.deepEqual(frames.at(-1), { event: 'done', data: { reason: 'complete' } });
   agent.db.close();
 });
+
+test('repeating the eager travel call reuses its result without another card', async () => {
+  const agent = deps(new FakeGuide([
+    {
+      role: 'assistant', content: null,
+      tool_calls: [{
+        id: 'repeat', type: 'function',
+        function: { name: 'compute_travel_time', arguments: JSON.stringify({ hyg_id: VEGA, speed_c: 0.9 }) },
+      }],
+    },
+    { role: 'assistant', content: 'Vega is a beautiful star.' },
+  ]));
+  const original = agent.backend.travelTime.bind(agent.backend);
+  let reads = 0;
+  agent.backend.travelTime = async (...args) => {
+    reads++;
+    return original(...args);
+  };
+  const frames = await collect(runAgent(agent, request(), context(), skill('star_fact_card'), immediateTicket()));
+  assert.equal(reads, 1);
+  const cards = frames.filter((event) => event.event === 'card');
+  assert.equal(cards.length, 1);
+  assert.deepEqual(frames.at(-1), { event: 'done', data: { reason: 'complete' } });
+  agent.db.close();
+});
