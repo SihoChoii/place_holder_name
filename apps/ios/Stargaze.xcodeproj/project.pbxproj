@@ -7,57 +7,24 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		12D048A63457FFAEFA0A22D8 /* SkyAlignmentEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B0B0C61501BA62159CDB2C5 /* SkyAlignmentEngine.swift */; };
-		308558FC5ED63A0A24202D96 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91D70C7762ADB9353FE2E256 /* Models.swift */; };
-		5A5F6BFA1B22CAA2B623BB75 /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7364F779164E91A159EB6BCE /* SessionStore.swift */; };
-		5E01AC1CE3D0176BBE1A6C60 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5C03C8634B2EF9232088392 /* RootView.swift */; };
-		63163E62FFF5AA579FBCE6AC /* SkyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1838445B7BCD35026FB5FE9C /* SkyView.swift */; };
-		7DD8EEAE67590BE399F2F44E /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9928A7511DF207D7021BE868 /* APIClient.swift */; };
-		A7979D5501869FCCA1FB484B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3060D0B3933E75BF09B41D80 /* Assets.xcassets */; };
+		5BAACC1917289B92579CC70A /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96239C5ED89B7E793E93DC93 /* ContentView.swift */; };
 		B056F800B6EC4855399C798A /* StargazeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16A0CD23FA349F2D043260C2 /* StargazeApp.swift */; };
-		C0941E983DDECCB2D55E5E17 /* StarListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DB512D6D9DC20268C693C48 /* StarListView.swift */; };
-		CC2F249E9427E623ABBB4001 /* CameraARView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5C7F6C026F7C4C260D6252B /* CameraARView.swift */; };
-		D25C9DEBAF374F6D167AA9D1 /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF4F08E44F986A10085F3209 /* AccountView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		16A0CD23FA349F2D043260C2 /* StargazeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StargazeApp.swift; sourceTree = "<group>"; };
-		1838445B7BCD35026FB5FE9C /* SkyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyView.swift; sourceTree = "<group>"; };
-		3060D0B3933E75BF09B41D80 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		6DB512D6D9DC20268C693C48 /* StarListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StarListView.swift; sourceTree = "<group>"; };
-		7364F779164E91A159EB6BCE /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
-		7B0B0C61501BA62159CDB2C5 /* SkyAlignmentEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyAlignmentEngine.swift; sourceTree = "<group>"; };
-		91D70C7762ADB9353FE2E256 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
-		9928A7511DF207D7021BE868 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		96239C5ED89B7E793E93DC93 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		BBE6DE2E18FC9CCA8A2E4231 /* Stargaze.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Stargaze.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		C5C03C8634B2EF9232088392 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
-		DF4F08E44F986A10085F3209 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
-		E5C7F6C026F7C4C260D6252B /* CameraARView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraARView.swift; sourceTree = "<group>"; };
-		F61E6A643F6E41A9EA55B703 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
 		0EEC879A8B77ABC0FDB7660D /* Stargaze */ = {
 			isa = PBXGroup;
 			children = (
-				3060D0B3933E75BF09B41D80 /* Assets.xcassets */,
-				F61E6A643F6E41A9EA55B703 /* Info.plist */,
-				C5C03C8634B2EF9232088392 /* RootView.swift */,
+				96239C5ED89B7E793E93DC93 /* ContentView.swift */,
 				16A0CD23FA349F2D043260C2 /* StargazeApp.swift */,
-				DD15B465AD2F8F739450F081 /* Networking */,
-				F9AE3A1D84C73974FB1DC1DE /* Sky */,
-				3AE880D29042C173D8B875DE /* Views */,
 			);
 			path = Stargaze;
-			sourceTree = "<group>";
-		};
-		3AE880D29042C173D8B875DE /* Views */ = {
-			isa = PBXGroup;
-			children = (
-				DF4F08E44F986A10085F3209 /* AccountView.swift */,
-				6DB512D6D9DC20268C693C48 /* StarListView.swift */,
-			);
-			path = Views;
 			sourceTree = "<group>";
 		};
 		3CBAF3048CA13968895F946A = {
@@ -76,26 +43,6 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		DD15B465AD2F8F739450F081 /* Networking */ = {
-			isa = PBXGroup;
-			children = (
-				9928A7511DF207D7021BE868 /* APIClient.swift */,
-				91D70C7762ADB9353FE2E256 /* Models.swift */,
-				7364F779164E91A159EB6BCE /* SessionStore.swift */,
-			);
-			path = Networking;
-			sourceTree = "<group>";
-		};
-		F9AE3A1D84C73974FB1DC1DE /* Sky */ = {
-			isa = PBXGroup;
-			children = (
-				E5C7F6C026F7C4C260D6252B /* CameraARView.swift */,
-				7B0B0C61501BA62159CDB2C5 /* SkyAlignmentEngine.swift */,
-				1838445B7BCD35026FB5FE9C /* SkyView.swift */,
-			);
-			path = Sky;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -104,7 +51,6 @@
 			buildConfigurationList = 0C402167D11AE7F94495163C /* Build configuration list for PBXNativeTarget "Stargaze" */;
 			buildPhases = (
 				315266836D0127FB5BE30E6C /* Sources */,
-				B15310AB7A4067B7DE308B4D /* Resources */,
 			);
 			buildRules = (
 			);
@@ -124,10 +70,9 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1600;
+				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					9944CF69883A6FB35CE4B57B = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -151,31 +96,12 @@
 		};
 /* End PBXProject section */
 
-/* Begin PBXResourcesBuildPhase section */
-		B15310AB7A4067B7DE308B4D /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				A7979D5501869FCCA1FB484B /* Assets.xcassets in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXResourcesBuildPhase section */
-
 /* Begin PBXSourcesBuildPhase section */
 		315266836D0127FB5BE30E6C /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7DD8EEAE67590BE399F2F44E /* APIClient.swift in Sources */,
-				D25C9DEBAF374F6D167AA9D1 /* AccountView.swift in Sources */,
-				CC2F249E9427E623ABBB4001 /* CameraARView.swift in Sources */,
-				308558FC5ED63A0A24202D96 /* Models.swift in Sources */,
-				5E01AC1CE3D0176BBE1A6C60 /* RootView.swift in Sources */,
-				5A5F6BFA1B22CAA2B623BB75 /* SessionStore.swift in Sources */,
-				12D048A63457FFAEFA0A22D8 /* SkyAlignmentEngine.swift in Sources */,
-				63163E62FFF5AA579FBCE6AC /* SkyView.swift in Sources */,
-				C0941E983DDECCB2D55E5E17 /* StarListView.swift in Sources */,
+				5BAACC1917289B92579CC70A /* ContentView.swift in Sources */,
 				B056F800B6EC4855399C798A /* StargazeApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -189,13 +115,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Stargaze/Info.plist;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.0.0;
 				PRODUCT_NAME = Stargaze;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -238,7 +165,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = "";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -249,7 +175,6 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				INFOPLIST_FILE = Stargaze/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -299,7 +224,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -316,7 +240,6 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				INFOPLIST_FILE = Stargaze/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -337,13 +260,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Stargaze/Info.plist;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.0.0;
 				PRODUCT_NAME = Stargaze;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";

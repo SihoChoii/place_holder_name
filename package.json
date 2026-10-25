@@ -3,17 +3,19 @@
   "private": true,
   "packageManager": "pnpm@9.15.0",
   "scripts": {
-    "dev": "turbo run dev",
+    "setup": "bash scripts/setup.sh",
+    "dev": "turbo run dev --filter=@stargaze/api --filter=@stargaze/web",
     "build": "turbo run build",
     "lint": "turbo run lint",
-    "db:generate": "pnpm --filter @stargaze/db generate",
-    "db:migrate": "pnpm --filter @stargaze/db migrate",
-    "db:push": "pnpm --filter @stargaze/db push",
-    "db:studio": "pnpm --filter @stargaze/db studio",
+    "db:generate": "bash scripts/with-env.sh pnpm --filter @stargaze/db generate",
+    "db:migrate": "bash scripts/with-env.sh pnpm --filter @stargaze/db migrate",
+    "db:push": "bash scripts/with-env.sh pnpm --filter @stargaze/db push",
+    "db:studio": "bash scripts/with-env.sh pnpm --filter @stargaze/db studio",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
     "dev:web": "pnpm --filter @stargaze/web dev",
-    "dev:api": "pnpm --filter @stargaze/api dev"
+    "dev:api": "pnpm --filter @stargaze/api dev",
+    "ios:gen": "cd apps/ios && xcodegen generate"
   },
   "devDependencies": {
     "turbo": "^2.5.4",

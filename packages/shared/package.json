@@ -1,6 +1,6 @@
 {
   "name": "@stargaze/shared",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
@@ -11,9 +11,6 @@
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit",
     "lint": "tsc -p tsconfig.json --noEmit"
-  },
-  "dependencies": {
-    "zod": "^3.25.28"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

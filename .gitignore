@@ -30,7 +30,5 @@ apps/ios/**/xcuserdata/
 apps/ios/**/*.xcuserstate
 apps/ios/.build/
 
-# Uploads / media (local)
-apps/api/uploads/
 *.log
 coverage/
