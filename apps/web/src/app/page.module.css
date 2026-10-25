@@ -1,0 +1,153 @@
+.page {
+  min-height: 100vh;
+  padding: 1.25rem 1.5rem 3rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 18%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1px 1px at 28% 42%, rgba(255, 255, 255, 0.55), transparent),
+    radial-gradient(1.5px 1.5px at 62% 22%, rgba(255, 255, 255, 0.65), transparent),
+    radial-gradient(1px 1px at 78% 58%, rgba(255, 255, 255, 0.45), transparent),
+    radial-gradient(2px 2px at 88% 16%, rgba(126, 200, 255, 0.8), transparent),
+    radial-gradient(1px 1px at 44% 72%, rgba(255, 255, 255, 0.5), transparent);
+  pointer-events: none;
+  animation: drift 28s linear infinite;
+}
+
+@keyframes drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-18px, 12px, 0);
+  }
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+}
+
+.brand {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  letter-spacing: 0.02em;
+}
+
+.links {
+  display: flex;
+  gap: 1.25rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.links a:hover {
+  color: var(--ink);
+}
+
+.hero {
+  position: relative;
+  z-index: 1;
+  max-width: 40rem;
+  margin-top: clamp(4rem, 18vh, 9rem);
+}
+
+.brandHero {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-display);
+  font-size: clamp(3.5rem, 12vw, 6.5rem);
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  background: linear-gradient(120deg, #fff 20%, var(--accent) 70%, var(--accent-warm));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: glow 4s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from {
+    filter: brightness(1);
+  }
+  to {
+    filter: brightness(1.12);
+  }
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(1.35rem, 3.5vw, 1.85rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  max-width: 18ch;
+}
+
+.lede {
+  margin: 1rem 0 0;
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1.55;
+  max-width: 36ch;
+}
+
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+}
+
+.primary,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 1.25rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+.primary {
+  background: var(--ink);
+  color: var(--bg-deep);
+}
+
+.primary:hover {
+  transform: translateY(-1px);
+}
+
+.secondary {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--ink);
+}
+
+.secondary:hover {
+  border-color: rgba(232, 238, 252, 0.35);
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 1rem 1.1rem 2.5rem;
+  }
+
+  .cta {
+    width: 100%;
+  }
+
+  .primary,
+  .secondary {
+    flex: 1 1 auto;
+  }
+}
