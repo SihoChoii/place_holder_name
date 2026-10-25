@@ -1,0 +1,12 @@
+event: start
+data: {"request_id":"8e0a2c4e-6a8c-4e0a-9c2e-4a6c8e0a2c68"}
+
+event: delta
+data: {"text":"Sirius is the brightest star in the night sky, "}
+
+event: delta
+data: {"text":"about 8.6 light-years away."}
+
+event: done
+data: {"request_id":"8e0a2c4e-6a8c-4e0a-9c2e-4a6c8e0a2c68"}
+

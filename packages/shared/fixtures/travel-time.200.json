@@ -1,0 +1,9 @@
+{
+  "hyg_id": 32263,
+  "speed_km_s": 17,
+  "distance_ly": 8.6,
+  "travel_seconds": 4786000000000.0,
+  "travel_years": 151663.0,
+  "reason": null,
+  "model": "distance / speed; constant speed, no acceleration or relativistic corrections"
+}

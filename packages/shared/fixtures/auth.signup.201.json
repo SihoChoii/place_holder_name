@@ -1,0 +1,10 @@
+{
+  "token": "<jwt>",
+  "expires_at": 1762036200000,
+  "user": {
+    "id": "7d0f3a52-1c7e-4b8e-9a51-2f0c6f5e9b01",
+    "display_name": "Ada",
+    "email": "ada@example.com",
+    "created_at": 1761431400000
+  }
+}

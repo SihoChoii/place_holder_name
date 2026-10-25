@@ -1,0 +1,22 @@
+{
+  "status": "degraded",
+  "components": {
+    "database": {
+      "status": "ok",
+      "checked_at": 1761433200000
+    },
+    "media": {
+      "status": "ok",
+      "checked_at": 1761433200000
+    },
+    "guide": {
+      "status": "unavailable",
+      "checked_at": 1761433190000,
+      "detail": "unreachable"
+    },
+    "moderation": {
+      "status": "ok",
+      "checked_at": 1761433190000
+    }
+  }
+}

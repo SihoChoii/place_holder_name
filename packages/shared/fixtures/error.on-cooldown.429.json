@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "on_cooldown",
+    "message": "You can claim another star later.",
+    "retry_after_seconds": 120
+  }
+}

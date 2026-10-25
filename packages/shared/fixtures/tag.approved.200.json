@@ -1,0 +1,49 @@
+{
+  "id": "9c4e2a1b-6d8f-4b3a-a5c7-e9f1d3b5a702",
+  "hyg_id": 32263,
+  "star_name": "Sirius",
+  "author": {
+    "id": "7d0f3a52-1c7e-4b8e-9a51-2f0c6f5e9b01",
+    "display_name": "Ada"
+  },
+  "note": "First light from the backyard",
+  "media": [
+    {
+      "id": "3a7c5e9b-1d2f-4e6a-8b0c-2f4a6c8e0d13",
+      "kind": "image",
+      "url": "/api/media/3a7c5e9b-1d2f-4e6a-8b0c-2f4a6c8e0d13",
+      "width": 2048,
+      "height": 1536,
+      "mime": "image/webp"
+    },
+    {
+      "id": "6b8d0f2a-4c6e-4a8b-9d1f-3e5a7c9b1d24",
+      "kind": "link",
+      "url": "https://en.wikipedia.org/wiki/Sirius"
+    }
+  ],
+  "moderation_status": "approved",
+  "created_at": 1761432000000,
+  "reaction_counts": {
+    "❤️": 2,
+    "✨": 1
+  },
+  "comment_count": 1,
+  "recent_comments": [
+    {
+      "id": "5e1c9a3b-7f2d-4a6e-b8c0-1d3f5a7b9c11",
+      "tag_id": "9c4e2a1b-6d8f-4b3a-a5c7-e9f1d3b5a702",
+      "author": {
+        "id": "c2b9e7a4-5d3f-4c61-8e2a-9b7d1f0a6c22",
+        "display_name": "Grace"
+      },
+      "body": "Beautiful shot!",
+      "media_id": null,
+      "moderation_status": "approved",
+      "created_at": 1761432600000
+    }
+  ],
+  "my_reactions": [
+    "❤️"
+  ]
+}

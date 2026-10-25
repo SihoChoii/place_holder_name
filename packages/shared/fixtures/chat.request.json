@@ -1,0 +1,14 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "What is this bright star?"
+    }
+  ],
+  "mode": "local",
+  "scope_hyg_ids": [
+    32263,
+    30365
+  ],
+  "selected_hyg_id": 32263
+}

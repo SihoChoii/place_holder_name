@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "guide_busy",
+    "message": "The guide is busy. Try again shortly.",
+    "retry_after_seconds": 5
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "already_claimed",
+    "message": "This star already has an owner."
+  }
+}

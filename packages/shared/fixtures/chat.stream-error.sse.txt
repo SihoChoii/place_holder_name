@@ -1,0 +1,9 @@
+event: start
+data: {"request_id":"8e0a2c4e-6a8c-4e0a-9c2e-4a6c8e0a2c68"}
+
+event: delta
+data: {"text":"Sirius is"}
+
+event: error
+data: {"code":"guide_unavailable","message":"The guide stopped responding."}
+

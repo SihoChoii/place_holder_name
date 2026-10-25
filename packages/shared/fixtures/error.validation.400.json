@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "validation_failed",
+    "message": "body/password must NOT have fewer than 12 characters"
+  }
+}

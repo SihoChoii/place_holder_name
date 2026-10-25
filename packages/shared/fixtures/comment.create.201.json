@@ -1,0 +1,15 @@
+{
+  "comment": {
+    "id": "5e1c9a3b-7f2d-4a6e-b8c0-1d3f5a7b9c11",
+    "tag_id": "9c4e2a1b-6d8f-4b3a-a5c7-e9f1d3b5a702",
+    "author": {
+      "id": "7d0f3a52-1c7e-4b8e-9a51-2f0c6f5e9b01",
+      "display_name": "Ada"
+    },
+    "body": "Beautiful shot!",
+    "media_id": null,
+    "moderation_status": "pending",
+    "created_at": 1761432600000,
+    "processing_state": "queued"
+  }
+}
