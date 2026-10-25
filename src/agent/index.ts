@@ -30,6 +30,7 @@ export type {
   CatalogStar,
   Client,
   ClaimState,
+  Comment,
   CommunityItem,
   DraftCard,
   ErrorCode,
@@ -37,8 +38,13 @@ export type {
   Mode,
   RequestCtx,
   SseEvent,
+  StarContent,
+  StarDetail,
   StarFacts,
+  StarSummary,
+  StarTag,
   Travel,
+  Visibility,
 } from './types.js';
 
 let registeredInstance: FastifyInstance | null = null;
@@ -96,6 +102,9 @@ export const agentRoutes: FastifyPluginAsync<AgentOptions> = async (app, options
     const moderator = createModerator(cfg, fetchImpl);
     const digest = new Digest(options.db, options.backend, now);
     const sessions = new SessionStore(options.db, now);
+    sessions.purgeExpired();
+    const retentionTimer = setInterval(() => sessions.purgeExpired(), 60 * 60_000);
+    retentionTimer.unref();
     const skills = loadSkills(new URL('./skills/', import.meta.url), new Set(TOOLS.map((tool) => tool.name)));
     const admission = new FifoLimiter(1, cfg.queueDepth);
     const rate = new SlidingWindowLimiter(LIMITS.chatsPerWindow, LIMITS.windowMs, now);
@@ -105,6 +114,7 @@ export const agentRoutes: FastifyPluginAsync<AgentOptions> = async (app, options
       digest.start();
     });
     app.addHook('onClose', async () => {
+      clearInterval(retentionTimer);
       for (const controller of active.values()) controller.abort(new Error('server closing'));
       active.clear();
       digest.stop();

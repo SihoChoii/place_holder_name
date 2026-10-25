@@ -22,7 +22,7 @@ import { saveSpeechScript } from './speech/store.js';
 import { toOpenAiTools, toolsFor } from './tools/registry.js';
 import type { ToolEnv } from './tools/types.js';
 import type { BackendReads, FactCard, RequestCtx, SseEvent, StarFacts, Travel } from './types.js';
-import { chunk } from './util.js';
+import { chunk, withDeadline } from './util.js';
 
 export interface AgentDeps {
   db: Database.Database;
@@ -38,12 +38,12 @@ export interface AgentDeps {
   now: () => number;
 }
 
-function toolExchange(name: string, id: string, result: Outcome): ChatMessage[] {
+function toolExchange(name: string, id: string, args: Record<string, unknown>, result: Outcome): ChatMessage[] {
   return [
     {
       role: 'assistant',
       content: null,
-      tool_calls: [{ id, type: 'function', function: { name, arguments: '{}' } }],
+      tool_calls: [{ id, type: 'function', function: { name, arguments: JSON.stringify(args) } }],
     },
     { role: 'tool', tool_call_id: id, content: result.modelText },
   ];
@@ -85,6 +85,7 @@ export async function* runAgent(
   const selected = ctx.selected;
   const guard = new Guard(toolEnv, allowed, ledger);
   const references = new Set<number>(selected === undefined ? [] : [selected]);
+  const travels = new Map<number, Travel>();
   for (const star of deps.catalog.namesIn(req.message)) references.add(star.hyg_id);
   let facts: StarFacts | undefined;
   let travel: Travel | undefined;
@@ -114,15 +115,23 @@ export async function* runAgent(
     yield { event: 'tool', data: { name: 'get_star_facts', status: 'start' } };
     const factOutcome = await guard.runEager('get_star_facts', { hyg_id: selected });
     yield { event: 'tool', data: { name: 'get_star_facts', status: factOutcome.ok ? 'end' : 'blocked' } };
-    eagerMessages.push(...toolExchange('get_star_facts', 'eager_facts', factOutcome));
+    eagerMessages.push(...toolExchange('get_star_facts', 'eager_facts', { hyg_id: selected }, factOutcome));
     facts = toolEnv.facts.get(selected);
 
     if (facts !== undefined && facts.distance_ly !== null) {
       yield { event: 'tool', data: { name: 'compute_travel_time', status: 'start' } };
       const travelOutcome = await guard.runEager('compute_travel_time', { hyg_id: selected });
       yield { event: 'tool', data: { name: 'compute_travel_time', status: travelOutcome.ok ? 'end' : 'blocked' } };
-      eagerMessages.push(...toolExchange('compute_travel_time', 'eager_travel', travelOutcome));
-      if (travelOutcome.card !== undefined && !('kind' in travelOutcome.card)) travel = travelOutcome.card.travel;
+      eagerMessages.push(...toolExchange(
+        'compute_travel_time',
+        'eager_travel',
+        { hyg_id: selected, speed_c: prefs.speed_c },
+        travelOutcome,
+      ));
+      if (travelOutcome.card !== undefined && !('kind' in travelOutcome.card)) {
+        travel = travelOutcome.card.travel;
+        if (travel !== undefined) travels.set(travelOutcome.card.hyg_id, travel);
+      }
     }
     if (facts !== undefined && cached === null) {
       card = factCard(facts, travel, 'live');
@@ -144,11 +153,20 @@ export async function* runAgent(
     .filter((id) => ctx.mode !== 'local' || ctx.inView.has(id))
     .map((id) => deps.catalog.get(id)?.name)
     .filter((name): name is string => name !== undefined);
-  const claimedNames = (await deps.backend.claimedStars(ctx.userId, 5, ctx.signal))
-    .filter((star) => ctx.mode !== 'local' || ctx.inView.has(star.hyg_id))
-    .map((star) => star.name);
+  let claimedNames: string[] = [];
+  try {
+    const claimed = await withDeadline(ctx.signal, deps.cfg.toolTimeoutMs, (deadline) => (
+      deps.backend.claimedStars(ctx.userId, 5, deadline)
+    ));
+    claimedNames = claimed
+      .filter((star) => ctx.mode !== 'local' || ctx.inView.has(star.hyg_id))
+      .map((star) => star.name);
+  } catch (error) {
+    if (ctx.signal.aborted) throw error;
+  }
   const skyNames = deps.catalog.brightest(ctx.inView, 20).map((star) => star.name);
   const memory = deps.sessions.load(ctx.userId, scopeFor(ctx), { mode: ctx.mode, inView: ctx.inView });
+  for (const ref of memory.refs) references.add(ref);
   const openTools = toOpenAiTools(allowed);
   const messages = assemble({
     ctx,
@@ -176,7 +194,12 @@ export async function* runAgent(
       const roundTools = finalRound ? [] : openTools;
       if (finalRound) messages.push({ role: 'user', content: 'Answer now using the available tool results; do not call tools.' });
       while (estimateMessages(messages, roundTools) > BUDGET.total && messages.length >= preservedMessageCount + 2) {
-        messages.splice(preservedMessageCount, 2);
+        let end = preservedMessageCount + 1;
+        while (end < messages.length && messages[end].role === 'tool') end++;
+        if (messages[preservedMessageCount]?.role === 'assistant'
+          && messages[preservedMessageCount]?.tool_calls === undefined
+          && messages[end]?.role === 'user') end++;
+        messages.splice(preservedMessageCount, end - preservedMessageCount);
       }
       if (estimateMessages(messages, roundTools) > BUDGET.total) {
         yield* emitFallback(deps, ctx, req.message, facts, travel, selected);
@@ -206,11 +229,14 @@ export async function* runAgent(
         continue;
       }
       if (parsed.kind === 'text') {
+        const namedStars = deps.catalog.namesIn(parsed.text);
+        for (const star of namedStars) {
+          if (ctx.mode !== 'local' || ctx.inView.has(star.hyg_id)) ledger.addName(star.name);
+        }
         if (!ledger.check(parsed.text).ok) {
           yield* emitFallback(deps, ctx, req.message, facts, travel, selected);
           return;
         }
-        const namedStars = deps.catalog.namesIn(parsed.text);
         for (const star of namedStars) references.add(star.hyg_id);
         yield* emitComplete(deps, ctx, req.message, parsed.text, namedStars.map((star) => star.name), selected, [...references]);
         return;
@@ -234,9 +260,14 @@ export async function* runAgent(
         const outcome = await guard.run(call);
         yield { event: 'tool', data: { name: call.name, status: outcome.ok ? 'end' : 'blocked' } };
         for (const ref of outcome.refs) references.add(ref);
+        if (outcome.card !== undefined && !('kind' in outcome.card) && outcome.card.travel !== undefined) {
+          travels.set(outcome.card.hyg_id, outcome.card.travel);
+        }
         const hygId = call.args.hyg_id;
-        if (typeof hygId === 'number') facts = toolEnv.facts.get(hygId) ?? facts;
-        if (outcome.card !== undefined && !('kind' in outcome.card)) travel = outcome.card.travel ?? travel;
+        if (typeof hygId === 'number') {
+          facts = toolEnv.facts.get(hygId) ?? facts;
+          if (facts !== undefined) travel = travels.get(facts.hyg_id);
+        }
         if (outcome.card !== undefined && !outcome.reused) yield { event: 'card', data: outcome.card };
         messages.push({ role: 'tool', tool_call_id: call.id, content: outcome.modelText });
       }

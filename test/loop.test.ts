@@ -183,3 +183,50 @@ test('only complete model responses persist a session turn', async () => {
   await collect(runAgent(complete, request('Tell me about Vega'), context(), skill('star_qa'), immediateTicket()));
   assert.equal((complete.db.prepare('SELECT COUNT(*) AS count FROM agent_sessions').get() as { count: number }).count, 1);
 });
+
+test('a follow-up inherits provenance from the history it used', async () => {
+  const agent = deps(new FakeGuide([{ role: 'assistant', content: 'That is a lovely observation.' }]));
+  agent.sessions.save('u1', 'local', {
+    user: 'Vega has a note.',
+    assistant: 'The note describes a clear night.',
+    refs: [VEGA], topic: 'notes', speedC: 0.9,
+  });
+  const ctx = context();
+  delete ctx.selected;
+  await collect(runAgent(agent, request('Describe that note'), ctx, skill('star_qa'), immediateTicket()));
+  const hidden = agent.sessions.load('u1', 'local', { mode: 'local', inView: new Set() });
+  assert.deepEqual(hidden.turns, []);
+  const visible = agent.sessions.load('u1', 'local', { mode: 'local', inView: new Set([VEGA]) });
+  assert.equal(visible.turns[1]?.assistant, 'That is a lovely observation.');
+  agent.db.close();
+});
+
+test('switching stars cannot attach earlier travel results to a fallback card', async () => {
+  const call = (name: string, id: number): ChatMessage => ({
+    role: 'assistant', content: null,
+    tool_calls: [{ id: name, type: 'function', function: { name, arguments: JSON.stringify({ hyg_id: id }) } }],
+  });
+  const agent = deps(new FakeGuide([
+    call('compute_travel_time', VEGA),
+    call('get_star_facts', 32349),
+    { role: 'assistant', content: 'This star is 99999 light years away.' },
+  ]));
+  const ctx = context();
+  ctx.mode = 'explore';
+  const frames = await collect(runAgent(agent, request('Compare these stars'), ctx, skill('star_qa'), immediateTicket()));
+  const cards = frames.filter((event): event is Extract<SseEvent, { event: 'card' }> => event.event === 'card');
+  const last = cards.at(-1)?.data;
+  assert(last && !('kind' in last));
+  assert.equal(last.hyg_id, 32349);
+  assert.equal(last.source, 'template');
+  assert.equal(last.travel, undefined);
+  agent.db.close();
+});
+
+test('an unavailable profile helper does not prevent a complete answer', async () => {
+  const agent = deps(new FakeGuide([{ role: 'assistant', content: 'The stars look beautiful.' }]));
+  agent.backend.claimedStars = async () => { throw new Error('profile unavailable'); };
+  const frames = await collect(runAgent(agent, request('Describe the sky'), context(), skill('star_qa'), immediateTicket()));
+  assert.deepEqual(frames.at(-1), { event: 'done', data: { reason: 'complete' } });
+  agent.db.close();
+});

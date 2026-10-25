@@ -32,6 +32,43 @@ function staticFacts(star: CatalogStar): StarFacts {
   };
 }
 
+async function discardBody(response: Response): Promise<void> {
+  try {
+    await response.body?.cancel();
+  } catch {
+    // A failed/canceled body has nothing left to drain.
+  }
+}
+
+async function readCappedBody(response: Response, signal: AbortSignal): Promise<Uint8Array | null> {
+  const reader = response.body?.getReader();
+  if (reader === undefined) return new Uint8Array();
+  const chunks: Uint8Array[] = [];
+  let length = 0;
+  try {
+    while (true) {
+      if (signal.aborted) throw abortError(signal);
+      const next = await reader.read();
+      if (next.done) break;
+      length += next.value.byteLength;
+      if (length > 256 * 1024) {
+        await reader.cancel();
+        return null;
+      }
+      chunks.push(next.value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+}
+
 async function wikipediaSummary(fetchImpl: typeof fetch, name: string, signal: AbortSignal): Promise<Wiki> {
   let url = new URL(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`);
   for (let redirects = 0; redirects <= 3; redirects++) {
@@ -40,17 +77,24 @@ async function wikipediaSummary(fetchImpl: typeof fetch, name: string, signal: A
     const response = await fetchImpl(url, { signal: combined, redirect: 'manual' });
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get('location');
+      await discardBody(response);
       if (location === null) return null;
       const next = new URL(location, url);
       if (next.protocol !== 'https:' || next.hostname !== 'en.wikipedia.org') return null;
       url = next;
       continue;
     }
-    if (!response.ok) return null;
+    if (!response.ok) {
+      await discardBody(response);
+      return null;
+    }
     const length = Number(response.headers.get('content-length'));
-    if (Number.isFinite(length) && length > 256 * 1024) return null;
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    if (bytes.byteLength > 256 * 1024) return null;
+    if (Number.isFinite(length) && length > 256 * 1024) {
+      await discardBody(response);
+      return null;
+    }
+    const bytes = await readCappedBody(response, signal);
+    if (bytes === null) return null;
     let body: unknown;
     try {
       body = JSON.parse(new TextDecoder().decode(bytes));
@@ -59,6 +103,7 @@ async function wikipediaSummary(fetchImpl: typeof fetch, name: string, signal: A
     }
     if (body === null || typeof body !== 'object' || Array.isArray(body)) return null;
     const record = body as Record<string, unknown>;
+    if (record.type === 'disambiguation') return null;
     return typeof record.title === 'string' && typeof record.extract === 'string' && record.extract.trim() !== ''
       ? { title: record.title, summary: record.extract }
       : null;
@@ -96,14 +141,21 @@ export async function prewarm(
         if (signal.aborted) throw error;
         return null;
       });
+      signal.throwIfAborted();
       upsertKnowledge(opts.db, knowledgeFacts(star), wiki, Date.now());
       const prompt = [
         { role: 'system' as const, content: 'Write a short factual star introduction using only the supplied facts. Do not invent numbers.' },
         { role: 'user' as const, content: JSON.stringify(knowledgeFacts(star)) },
       ];
-      const reply = await guide.chat(prompt, [], signal, { maxTokens: cfg.maxTokens });
-      const parsed = parseReply(reply, `prewarm_${star.hyg_id}`);
-      const text = parsed.kind === 'text' && validBlurb(parsed.text, facts) ? parsed.text : templateText(facts);
+      let text = templateText(facts);
+      try {
+        const reply = await guide.chat(prompt, [], signal, { maxTokens: cfg.maxTokens });
+        const parsed = parseReply(reply, `prewarm_${star.hyg_id}`);
+        if (parsed.kind === 'text' && validBlurb(parsed.text, facts)) text = parsed.text;
+      } catch (error) {
+        if (signal.aborted) throw error;
+      }
+      signal.throwIfAborted();
       upsertBlurb(opts.db, {
         hyg_id: star.hyg_id,
         text,
