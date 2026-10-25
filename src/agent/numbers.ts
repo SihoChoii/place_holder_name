@@ -115,6 +115,8 @@ export class NumberLedger {
     }
     for (const match of inspect.matchAll(WRITTEN_QUANTITY)) {
       const phrase = match[1];
+      const words = phrase.toLowerCase().split(/[\s-]+/).filter(Boolean);
+      if (!words.some((word) => word !== 'and')) continue;
       const value = parseWrittenNumber(phrase);
       if (value === null || !this.values.has(value)) offending.add(phrase.trim());
     }

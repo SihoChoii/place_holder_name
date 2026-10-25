@@ -13,6 +13,12 @@ test('number ledger accepts formatted provenance and flags unknown numeric claim
   assert.deepEqual(ledger.check('It is one of our favorites.'), { ok: true });
 });
 
+test('number ledger ignores conjunctions that are not written numbers', () => {
+  const ledger = new NumberLedger();
+  ledger.addValue(0);
+  assert.deepEqual(ledger.check('Planets and stars can reflect dust and light.'), { ok: true });
+});
+
 test('number ledger distinguishes signed values while preserving date components', () => {
   const ledger = new NumberLedger();
   ledger.addValue(25);

@@ -13,6 +13,18 @@ test('parses nested Gemma leaked calls with Gemma string delimiters', () => {
   });
 });
 
+test('preserves raw Gemma string content with quotes, backslashes, newlines, and nested braces', () => {
+  const body = 'Love "Vega"\\path\nwith {nested} braces';
+  const result = parseReply({
+    role: 'assistant',
+    content: `<|tool_call>call:save{body:<|"|>${body}<|"|>, meta:{depth:2}}<tool_call|>`,
+  }, 'request');
+  assert.deepEqual(result, {
+    kind: 'calls',
+    calls: [{ id: 'request_0', name: 'save', args: { body, meta: { depth: 2 } } }],
+  });
+});
+
 test('keeps structured calls strict and atomic', () => {
   const result = parseReply({
     role: 'assistant',

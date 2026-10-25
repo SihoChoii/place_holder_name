@@ -37,24 +37,31 @@ function containsControlToken(text: string): boolean {
 
 function balancedObjectEnd(text: string, start: number): number | null {
   let depth = 0;
-  let quoted = false;
+  let stringKind: 'json' | 'gemma' | null = null;
   let escaped = false;
   for (let index = start; index < text.length; index++) {
-    if (text.startsWith(GEMMA_QUOTE, index)) {
-      if (!escaped) quoted = !quoted;
-      index += GEMMA_QUOTE.length - 1;
-      escaped = false;
+    if (stringKind === 'gemma') {
+      if (text.startsWith(GEMMA_QUOTE, index)) {
+        stringKind = null;
+        index += GEMMA_QUOTE.length - 1;
+      }
       continue;
     }
+
     const char = text[index];
-    if (quoted) {
+    if (stringKind === 'json') {
       if (escaped) escaped = false;
       else if (char === '\\') escaped = true;
-      else if (char === '"') quoted = false;
+      else if (char === '"') stringKind = null;
+      continue;
+    }
+    if (text.startsWith(GEMMA_QUOTE, index)) {
+      stringKind = 'gemma';
+      index += GEMMA_QUOTE.length - 1;
       continue;
     }
     if (char === '"') {
-      quoted = true;
+      stringKind = 'json';
       continue;
     }
     if (char === '{') depth++;
@@ -67,13 +74,38 @@ function balancedObjectEnd(text: string, start: number): number | null {
   return null;
 }
 
+function normalizeGemmaStrings(text: string): string | null {
+  let normalized = '';
+  let jsonString = false;
+  let escaped = false;
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index];
+    if (jsonString) {
+      normalized += char;
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === '"') jsonString = false;
+      continue;
+    }
+    if (text.startsWith(GEMMA_QUOTE, index)) {
+      const close = text.indexOf(GEMMA_QUOTE, index + GEMMA_QUOTE.length);
+      if (close === -1) return null;
+      normalized += JSON.stringify(text.slice(index + GEMMA_QUOTE.length, close));
+      index = close + GEMMA_QUOTE.length - 1;
+      continue;
+    }
+    normalized += char;
+    if (char === '"') jsonString = true;
+  }
+  return jsonString || escaped ? null : normalized;
+}
+
 function quoteBareKeys(text: string): string | null {
-  const normalized = text.replaceAll(GEMMA_QUOTE, '"');
   let result = '';
   let quoted = false;
   let escaped = false;
-  for (let index = 0; index < normalized.length; index++) {
-    const char = normalized[index];
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index];
     if (quoted) {
       result += char;
       if (escaped) escaped = false;
@@ -88,14 +120,14 @@ function quoteBareKeys(text: string): string | null {
     }
     if (/[A-Za-z_]/.test(char)) {
       let previous = index - 1;
-      while (previous >= 0 && /\s/.test(normalized[previous])) previous--;
-      const propertyPosition = previous < 0 || normalized[previous] === '{' || normalized[previous] === ',';
-      const match = /^[A-Za-z_]\w*/.exec(normalized.slice(index));
+      while (previous >= 0 && /\s/.test(text[previous])) previous--;
+      const propertyPosition = previous < 0 || text[previous] === '{' || text[previous] === ',';
+      const match = /^[A-Za-z_]\w*/.exec(text.slice(index));
       if (propertyPosition && match) {
         const after = index + match[0].length;
         let cursor = after;
-        while (cursor < normalized.length && /\s/.test(normalized[cursor])) cursor++;
-        if (normalized[cursor] !== ':') return null;
+        while (cursor < text.length && /\s/.test(text[cursor])) cursor++;
+        if (text[cursor] !== ':') return null;
         result += `"${match[0]}"`;
         index = after - 1;
         continue;
@@ -108,7 +140,9 @@ function quoteBareKeys(text: string): string | null {
 
 function parseLeakedArgs(raw: string): Record<string, unknown> | null {
   if (raw.replaceAll(GEMMA_QUOTE, '').includes('<|') || /<[^<>|]*\|>/.test(raw)) return null;
-  const repaired = quoteBareKeys(raw);
+  const normalized = normalizeGemmaStrings(raw);
+  if (normalized === null) return null;
+  const repaired = quoteBareKeys(normalized);
   if (repaired === null) return null;
   return parseStrictArgs(repaired);
 }
