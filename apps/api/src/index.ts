@@ -1,29 +1,29 @@
-import { serve } from "@hono/node-server";
-import { Hono } from "hono";
-import { cors } from "hono/cors";
-import { config } from "dotenv";
-import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { loadConfig } from "./config.js";
+import { buildApp } from "./app.js";
+import { acquireProcessLock } from "./lib/lock.js";
 
-const root = resolve(fileURLToPath(new URL(".", import.meta.url)), "../../..");
-config({ path: resolve(root, ".env") });
+/** Process entry: one API process with one moderation loop. Stops cleanly on SIGINT/SIGTERM. */
+const config = loadConfig();
+const releaseLock = acquireProcessLock(config.dbPath);
+process.on("exit", releaseLock);
+const server = await buildApp(config, { background: true });
+const { app } = server;
 
-const port = Number(process.env.API_PORT ?? 4000);
-const host = process.env.API_HOST ?? "0.0.0.0";
-const corsOrigin = process.env.CORS_ORIGIN ?? "http://localhost:3000";
+let closing = false;
+for (const sig of ["SIGINT", "SIGTERM"] as const) {
+  process.on(sig, () => {
+    if (closing) return;
+    closing = true;
+    app.log.info({ signal: sig }, "shutting down");
+    server.close().then(() => process.exit(0), (e) => { app.log.error(e); process.exit(1); });
+  });
+}
 
-const app = new Hono();
-
-app.use(
-  "*",
-  cors({
-    origin: corsOrigin.split(",").map((s) => s.trim()),
-  }),
-);
-
-app.get("/health", (c) => c.json({ ok: true, service: "stargaze-api" }));
-
-// Add routes here.
-
-console.log(`API listening on http://${host}:${port}`);
-serve({ fetch: app.fetch, hostname: host, port });
+try {
+  await app.listen({ host: config.host, port: config.port });
+  app.log.info({ db: config.dbPath, media: config.mediaDir, moderation: config.moderationEnabled }, "Star Tagger API ready");
+} catch (e) {
+  app.log.error(e);
+  await server.close();
+  process.exit(1);
+}

@@ -32,3 +32,6 @@ apps/ios/.build/
 
 *.log
 coverage/
+
+# Local application state (database, media, backups)
+data/

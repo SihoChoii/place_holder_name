@@ -1,18 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
-
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-  });
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
-
-export * from "@prisma/client";
-export { prisma as db };
+export { openDatabase, immediate, type DB } from "./connection.js";
+export { migrate, MIGRATIONS_DIR, type MigrationResult } from "./migrate.js";
+export { fingerprint } from "./fingerprint.js";
+export { jobQueries, RETRY_DELAYS_MS, MAX_ATTEMPTS, type JobQueries, type ModerationJob, type TargetKind } from "./jobs.js";
