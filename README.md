@@ -50,7 +50,7 @@ Docs: [API contract](docs/api-contract.md) · [route matrix](docs/route-matrix.m
 | `pnpm test` | Build the actual website, then integration/regression tests using temp DB/media and fake model servers |
 | `pnpm db:migrate` | Apply unapplied SQLite migrations (same DB from any working directory) |
 | `pnpm models:check [--write-lock]` | Real Gemma/Clef capability checks; `--write-lock` records digests in `docs/model-lock.json` |
-| `pnpm seed` | Demo users/claims/posts (`demo.*@example.com`); posts stay pending until real moderation |
+| `pnpm seed` | Demo users/claims/posts (`demo.*@example.com`); posts stay pending until real moderation. New demo users get `SEED_PASSWORD` (12–128 chars) or a random password printed once as `generated_password` |
 | `pnpm smoke [url]` | Fresh-data journey against a running stack |
 | `pnpm moderation:list` / `moderation:retry <id|--all-failed>` / `moderation:approve <tag> --reason …` | Inspect/retry jobs; audited manual approval |
 | `pnpm db:backup [dir]` | SQLite online backup + media copy + manifest |

@@ -12,7 +12,7 @@ import { boundedToolResults, buildMessages, fitMessages, MODEL_INPUT_BUDGET } fr
 import { runTool, TOOL_SCHEMAS } from "../src/guide/tools.js";
 import { validateLink } from "../src/media/links.js";
 import { ModerationWorker } from "../src/moderation/worker.js";
-import { form, harness, key, signup } from "./helpers.js";
+import { form, harness, key, ORIGIN, signup } from "./helpers.js";
 
 test("process mutex: simultaneous startup has one owner; crash releases it; losers cannot unlink it", { timeout: 15_000 }, async () => {
   const dir = mkdtempSync(join(tmpdir(), "stargaze-lock-"));
@@ -297,4 +297,31 @@ test("travel time accepts any finite positive speed (no light-speed cap) in REST
   const tool = runTool(h.server.ctx, null, "calculate_travel_time", { hyg_id: 32263, speed_km_s: 1e6 }) as { speed_km_s: number };
   assert.equal(tool.speed_km_s, 1e6);
   assert.throws(() => runTool(h.server.ctx, null, "calculate_travel_time", { hyg_id: 32263, speed_km_s: 0 }), /positive/);
+});
+
+test("seed never uses a committed password: SEED_PASSWORD or a random one printed once", { timeout: 30_000 }, async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "stargaze-seed-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const run = (db: string, extra: Record<string, string> = {}) => {
+    const env: Record<string, string | undefined> = { ...process.env, DB_PATH: db, MEDIA_DIR: join(dir, "media"), ...extra };
+    if (!("SEED_PASSWORD" in extra)) delete env.SEED_PASSWORD;
+    const r = spawnSync(process.execPath, ["--import", "tsx", "src/scripts/seed.ts"], { cwd: join(REPO_ROOT, "apps/api"), env, encoding: "utf8" });
+    return { status: r.status, out: r.status === 0 ? JSON.parse(r.stdout) : null, stderr: r.stderr };
+  };
+  assert.doesNotMatch(readFileSync(join(REPO_ROOT, "apps/api/src/scripts/seed.ts"), "utf8"), /stargaze-demo-1/);
+  const generatedDb = join(dir, "generated.sqlite");
+  const first = run(generatedDb);
+  assert.equal(first.status, 0, first.stderr);
+  assert.match(first.out.generated_password, /^[\w-]{20}$/);
+  const again = run(generatedDb); // existing users keep their password; nothing new to print
+  assert.equal(again.out.generated_password, undefined);
+  const h = await harness({ DB_PATH: generatedDb }); t.after(() => h.close());
+  const login = (password: string) => h.server.app.inject({ method: "POST", url: "/api/auth/login", headers: { origin: ORIGIN },
+    payload: { email: "demo.ada@example.com", password } });
+  assert.equal((await login(first.out.generated_password)).statusCode, 200);
+  assert.equal((await login("stargaze-demo-1")).statusCode, 401);
+  const fixed = run(join(dir, "fixed.sqlite"), { SEED_PASSWORD: "a-long-demo-password" });
+  assert.equal(fixed.status, 0, fixed.stderr);
+  assert.equal(fixed.out.generated_password, undefined);
+  assert.equal(run(join(dir, "short.sqlite"), { SEED_PASSWORD: "short" }).status, 1);
 });
