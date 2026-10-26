@@ -2681,6 +2681,309 @@
         }
       }
     },
+    "/api/agent/summary": {
+      "post": {
+        "tags": [
+          "guide"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "hyg_id"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "hyg_id": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "audio": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "hyg_id",
+                    "title",
+                    "blurb",
+                    "source",
+                    "audio"
+                  ],
+                  "properties": {
+                    "hyg_id": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "blurb": {
+                      "type": "string",
+                      "maxLength": 600
+                    },
+                    "source": {
+                      "type": "object",
+                      "required": [
+                        "title",
+                        "url"
+                      ],
+                      "properties": {
+                        "title": {
+                          "type": "string"
+                        },
+                        "url": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "audio": {
+                      "type": "object",
+                      "required": [
+                        "mime_type",
+                        "base64"
+                      ],
+                      "properties": {
+                        "mime_type": {
+                          "type": "string",
+                          "enum": [
+                            "audio/mpeg"
+                          ]
+                        },
+                        "base64": {
+                          "type": "string"
+                        }
+                      },
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retry_after_seconds": {
+                          "type": "integer"
+                        },
+                        "details": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retry_after_seconds": {
+                          "type": "integer"
+                        },
+                        "details": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found: unknown star, or no Wikipedia article for it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retry_after_seconds": {
+                          "type": "integer"
+                        },
+                        "details": {}
+                      }
+                    }
+                  },
+                  "description": "not_found: unknown star, or no Wikipedia article for it"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retry_after_seconds": {
+                          "type": "integer"
+                        },
+                        "details": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "guide_busy or guide_unavailable (Gemma or Wikipedia down)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retry_after_seconds": {
+                          "type": "integer"
+                        },
+                        "details": {}
+                      }
+                    }
+                  },
+                  "description": "guide_busy or guide_unavailable (Gemma or Wikipedia down)"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "guide_timeout",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retry_after_seconds": {
+                          "type": "integer"
+                        },
+                        "details": {}
+                      }
+                    }
+                  },
+                  "description": "guide_timeout"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/stars/{hyg_id}": {
       "get": {
         "tags": [

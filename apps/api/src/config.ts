@@ -1,4 +1,5 @@
 import { config as loadDotenv } from "dotenv";
+import { summaryOptionsFromEnv, type SummaryToolsOptions } from "./guide/astral/summaries.js";
 import { LIMITS } from "@stargaze/shared";
 import { fromRoot, REPO_ROOT } from "./lib/paths.js";
 
@@ -20,7 +21,9 @@ export interface Config {
   clef: { baseUrl: string; model: string; callTimeoutMs: number; jobTimeoutMs: number };
   moderationEnabled: boolean;
   claimCooldownSeconds: number;
-  rate: { loginPerMin: number; signupPerHour: number; writesPerMin: number; chatPerHour: number };
+  rate: { loginPerMin: number; signupPerHour: number; writesPerMin: number; chatPerHour: number; summaryPerHour: number };
+  /** Astral Harness Wikipedia/xAI summary options (server-only; XAI_API_KEY never leaves the server). */
+  summary: SummaryToolsOptions;
 }
 
 type Env = Record<string, string | undefined>;
@@ -105,7 +108,9 @@ export function loadConfig(env: Env = process.env, { dotenv = true, partial = fa
       signupPerHour: int(env, "RATE_SIGNUP_PER_HOUR", 5, 1),
       writesPerMin: int(env, "RATE_WRITES_PER_MIN", 20, 1),
       chatPerHour: int(env, "RATE_CHAT_PER_HOUR", 30, 1),
+      summaryPerHour: int(env, "RATE_SUMMARY_PER_HOUR", 30, 1),
     },
+    summary: summaryOptionsFromEnv(env),
   };
 }
 

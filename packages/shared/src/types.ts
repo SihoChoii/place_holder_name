@@ -74,6 +74,11 @@ export interface ClaimedStar { hyg_id: number; owner: PublicUser; claimed_at: nu
 export interface ClaimedStarsResponse { stars: ClaimedStar[]; version: string; server_time: number }
 export interface ReactionResponse { tag_id: string; reaction_counts: Record<string, number>; my_reactions: string[] }
 export interface ChatMessage { role: "user" | "assistant"; content: string }
+export interface SummaryRequest { hyg_id: number; audio?: boolean }
+export interface SummaryResponse {
+  hyg_id: number; title: string; blurb: string; source: { title: string; url: string };
+  audio: { mime_type: "audio/mpeg"; base64: string } | null;
+}
 export interface ChatRequest { messages: ChatMessage[]; mode: "local" | "explore"; scope_hyg_ids?: number[]; selected_hyg_id?: number | null }
 export type ChatEvent =
   | { event: "start"; data: { request_id: string } }

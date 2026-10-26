@@ -35,7 +35,7 @@ Those model addresses are deliberately unavailable; this does not simulate succe
 
 - `/`: live time and observer sky; drag, wheel/pinch zoom, hover/tap preview, and keyboard arrows/+/-/Enter/Escape. Daylight reduces visible stars; choose a currently dark preset to explore a night sky at the same live time.
 - The Earth globe shows the current observer and a rectangular heading/FOV indicator. Starbase, Greenwich, Paranal, custom coordinates, and explicit GPS retry are available. One initial location request is nonblocking, with provisional Starbase and denial/timeout fallback. A manual selection wins over late GPS.
-- `/star?hyg_id=32263`: real catalog facts, current public ownership, approved posts/media/comments, Find in sky, and a shareable URL. `/star/32263` redirects to that single exported shell. Invalid query IDs show an in-page not-found state (HTTP 200 shell); invalid clean aliases return HTTP 404.
+- `/star?hyg_id=32263`: real catalog facts, current public ownership, approved posts/media/comments, Find in sky, and a shareable URL. `/star/32263` redirects to that single exported shell. Invalid query IDs show an in-page not-found state (HTTP 200 shell); invalid clean aliases return HTTP 404. The star page now includes a guide chat panel and an 'About this star' blurb component (requires login).
 - `/login`: existing accounts, same-origin HttpOnly session cookie, return to the original star, and logout. No token is persisted in browser storage. Signup and social writes are deferred.
 - `/catalog`: all 8,920 records, search by name/HYG/HIP/constellation, 88 constellation filters, brightness/name sorting, bounded paging, and keyboard-accessible details.
 - Save and unsave stars. Add, edit, or delete a personal note.
@@ -54,7 +54,7 @@ Saved stars and notes are stored locally under `stargaze-reference-library-v1`. 
 
 `src/components/catalog` composes the catalog shell, toolbar, table, and source dialog. `src/components/astronomy` contains the reusable selected-star detail and code-rendered constellation diagram. `src/hooks/use-library.ts` owns validated local persistence.
 
-`src/sky` owns observer state, astronomy, the SVG globe, canvas renderer, and pointer/keyboard picking. Projection and picking share one visible-point list. The render loop is outside React, pauses while hidden, caps DPR at two, and redraws for input or the live one-second clock. `src/lib/catalog.ts` loads the versioned asset once. `src/lib/api` validates actual shared schemas and caches public details. `src/features` composes auth, public details, approved posts, header, and credits.
+`src/sky` owns observer state, astronomy, the SVG globe, canvas renderer, and pointer/keyboard picking. Projection and picking share one visible-point list. The render loop is outside React, pauses while hidden, caps DPR at two, and redraws for input or the live one-second clock. `src/lib/catalog.ts` loads the versioned asset once. `src/lib/api` validates actual shared schemas and caches public details. `src/features` composes auth, public details, approved posts, header, credits, and the guide chat/blurb components.
 
 ## Design system
 
