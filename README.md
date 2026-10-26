@@ -16,6 +16,10 @@ packages/
 catalog/   Pinned HYG star catalog (8,920 stars ≤ mag 6.5) + attribution
 docs/      API contract, route matrix, OpenAPI, operations, progress/verification
 data/      (ignored) database, private photos, backups
+tools/
+  astral-harness/  Standalone guide harness (prompt, skills, summaries, Wikipedia/voice helpers, eval harness)
+                   Separate npm project (Node 24): cd tools/astral-harness && npm ci && npm test
+                   Not yet wired into the API pending approval
 ```
 
 ## Architecture
