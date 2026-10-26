@@ -23,6 +23,53 @@ npm run smoke
 
 The smoke uses local protocol fixtures and the stand-in. It is **not** a baseline against the shipped backend or proof of Gemma performance. See [verification evidence](docs/VERIFICATION.md) for observed results and missing prerequisites.
 
+Verified locally on Node v26.12.0: the build, all 13 tests, HTTP protocol smoke, and compiled smoke (`node dist/scripts/smoke.js`) pass. These are local tooling checks, not backend acceptance.
+
+## Prompt and skill exports
+
+After building, the package exposes the review assets:
+
+```ts
+import { SYSTEM_PROMPT } from 'astral-harness';
+import { skillFor } from 'astral-harness/skills';
+
+const instruction = skillFor('How long to get there?');
+```
+
+The system prompt is 56 words. Skill selection uses travel → community → compare → default precedence. Travel instructs a default of 17 km/s when no speed is supplied and requires stating constant speed without relativity. Importing these assets does not wire them into the backend.
+
+## HTTP golden evaluations
+
+Start the native Ollama stand-in in one terminal:
+
+```sh
+npm run eval:standin
+```
+
+It listens on `http://127.0.0.1:11555` by default. Configure the separately running backend with that `GUIDE_BASE_URL`—not a `/v1` URL—then evaluate the backend's authenticated route:
+
+```sh
+API_BASE_URL=http://127.0.0.1:3000 \
+STANDIN_EVIDENCE_URL=http://127.0.0.1:11555 \
+EVAL_ENVIRONMENT=local-backend-standin \
+npm run eval:golden
+```
+
+Supply a dedicated user's session through `EVAL_COOKIE`, or an authorization header through `EVAL_AUTHORIZATION`, using your secret manager. Neither credential belongs in the request fixture or committed files. A full run makes twelve chat requests against the backend's thirty-per-hour user limit.
+
+The twelve scenarios cover selected-star answers, travel, approved community content, leaked and malformed tool calls, comparison, scope denial, empty scope, planner failure, post injection, and app-only claiming. `EVAL_GOLDEN=10` selects a single case; `EVAL_RECORD_DIR=harness/evals/recordings` opts into sanitized result summaries.
+
+The runner checks SSE framing and answer text separately from tool observations. Planner suggestions do not count as executed tools, and evidence resets before each case. Missing or unreachable evidence does not prevent the HTTP check. Any failed, blocked, or unverified case produces a nonzero exit status.
+
+**No external baseline has been recorded:** the backend URL, login credentials, model address, and authoritative backend fixtures were unavailable. Cases 2, 3, 7, 8, and 11 remain unverified even with tool execution observed until backend fixture/result assertions establish their full semantics. A successful text check alone is not a golden acceptance pass.
+
+For golden 10, either:
+
+- Start the stand-in with `STANDIN_G10_MODE=503` and retain the evidence URL for an observable, explicitly simulated planner failure.
+- Stop the stand-in, keep the backend running, unset `STANDIN_EVIDENCE_URL`, and run with `EVAL_GOLDEN=10`. Text/stream checks still run, but failure evidence remains unverified.
+
+A normal stand-in does not inject an outage, so golden 10 is unverified in that configuration. For real Gemma, point the backend at the real model and omit the stand-in evidence URL. See [deployment/evaluation](docs/DEPLOYMENT.md) for configuration, remote binding, recording limits, and baseline prerequisites.
+
 ## Frozen backend contract
 
 Clients authenticate with the existing backend and call `POST /api/agent/chat`:
