@@ -26,7 +26,7 @@ const parseArgs = (raw: unknown): Record<string, unknown> => {
 /**
  * Gemma client. `ollama` (default): native /api/chat with explicit num_ctx / num_predict and think:false.
  * `openai` (Unsloth and other OpenAI-compatible servers): /v1/chat/completions with max_tokens and
- * chat_template_kwargs.enable_thinking=false. Both return the same internal message and text stream.
+ * chat_template_kwargs.enable_thinking=false plus thinking:{type:"disabled"} (DeepSeek). Both return the same internal message and text stream.
  */
 export class GemmaClient {
   readonly style: ApiStyle;
@@ -45,7 +45,8 @@ export class GemmaClient {
         messages: o.messages.map(toOpenAI),
         ...(o.tools ? { tools: o.tools } : {}),
         ...(o.temperature !== undefined ? { temperature: o.temperature } : {}),
-        ...(this.think ? {} : { chat_template_kwargs: { enable_thinking: false } }),
+        // Unsloth/llama.cpp read chat_template_kwargs; DeepSeek ignores it and needs `thinking`. Each ignores the other.
+        ...(this.think ? {} : { chat_template_kwargs: { enable_thinking: false }, thinking: { type: "disabled" } }),
       };
     }
     return {
@@ -81,12 +82,14 @@ export class GemmaClient {
         buf += decoder.decode(chunk, { stream: true }); // keeps partial UTF-8 sequences across chunks
         let nl: number;
         while ((nl = buf.indexOf("\n")) >= 0) {
+          if (o.signal?.aborted) throw o.signal.reason ?? new Error("aborted"); // fast hosts deliver many lines per chunk
           const line = parse(buf.slice(0, nl));
           buf = buf.slice(nl + 1);
           if (line.text) yield line.text;
           if (line.done) return;
         }
       }
+      if (o.signal?.aborted) throw o.signal.reason ?? new Error("aborted");
       const last = parse(buf + decoder.decode());
       if (last.text) yield last.text;
       if (!last.done) throw new ModelError("invalid_output", "guide stream ended without done");
