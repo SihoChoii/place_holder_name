@@ -16,7 +16,7 @@ test("actual Next.js export loads with its assets and cookie API on the same HTT
   const page = await fetch(origin);
   assert.equal(page.status, 200);
   const html = await page.text();
-  assert.match(html, /<title>Stargaze<\/title>/);
+  assert.match(html, /<title>StarTagger<\/title>/);
   const scripts = [...html.matchAll(/src="([^\"]+\.js[^\"]*)"/g)].map((m) => m[1]);
   assert.ok(scripts.length > 0);
   for (const path of scripts) {
@@ -29,7 +29,7 @@ test("actual Next.js export loads with its assets and cookie API on the same HTT
     const route = await fetch(new URL(path, origin));
     assert.equal(route.status, 200, path);
     assert.match(route.headers.get("content-type")!, /text\/html/);
-    assert.match(await route.text(), /Stargaze/);
+    assert.match(await route.text(), /StarTagger/);
   }
   const alias = await fetch(`${origin}/star/32263`, { redirect: "manual" });
   assert.equal(alias.status, 302);
