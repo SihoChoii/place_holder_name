@@ -5,25 +5,27 @@ import { mediaVisible, tagVisible } from "./visibility.js";
 
 /**
  * Every claimed star with a one-item preview for the website sky (anonymous viewer only, so approved,
- * non-deleted content). One statement: window functions pick each claim's newest visible post and count
- * them; correlated subqueries take that post's first approved image and link.
+ * non-deleted content). One statement; every per-claim lookup is an indexed correlated subquery (tags_claim,
+ * media_tag), so it stays linear in the number of claims. (A window-function CTE joined back to the claims
+ * was scanned once per claim: ~1.7 s at 8,000 claims.)
  */
 const SQL = `
-  WITH visible AS (
-    SELECT t.id, t.claim_id, t.note,
-      ROW_NUMBER() OVER (PARTITION BY t.claim_id ORDER BY t.created_at DESC, t.id DESC) AS rn,
-      COUNT(*) OVER (PARTITION BY t.claim_id) AS n
-    FROM tags t WHERE ${tagVisible("t")}
+  WITH picked AS (
+    SELECT c.hyg_id, c.claimed_at, c.user_id,
+      (SELECT t.id FROM tags t WHERE t.claim_id = c.id AND ${tagVisible("t")}
+        ORDER BY t.created_at DESC, t.id DESC LIMIT 1) AS tag_id,
+      (SELECT COUNT(*) FROM tags t WHERE t.claim_id = c.id AND ${tagVisible("t")}) AS n
+    FROM star_claims c
   )
-  SELECT c.hyg_id, c.claimed_at, u.id AS owner_id, u.display_name, v.note, v.n,
+  SELECT p.hyg_id, p.claimed_at, u.id AS owner_id, u.display_name, v.note, CASE WHEN v.id IS NULL THEN NULL ELSE p.n END AS n,
     (SELECT m.id FROM media m JOIN tags t ON t.id = m.tag_id
       WHERE m.tag_id = v.id AND m.kind = 'image' AND ${mediaVisible("m", "t")} ORDER BY m.position LIMIT 1) AS image_id,
     (SELECT m.url FROM media m JOIN tags t ON t.id = m.tag_id
       WHERE m.tag_id = v.id AND m.kind = 'link' AND ${mediaVisible("m", "t")} ORDER BY m.position LIMIT 1) AS link_url
-  FROM star_claims c
-  JOIN users u ON u.id = c.user_id
-  LEFT JOIN visible v ON v.claim_id = c.id AND v.rn = 1
-  ORDER BY c.claimed_at, c.hyg_id`;
+  FROM picked p
+  JOIN users u ON u.id = p.user_id
+  LEFT JOIN tags v ON v.id = p.tag_id
+  ORDER BY p.claimed_at, p.hyg_id`;
 
 interface Row {
   hyg_id: number; claimed_at: number; owner_id: string; display_name: string;
