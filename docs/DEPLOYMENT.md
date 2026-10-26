@@ -1,146 +1,87 @@
-# Deployment
+# Deployment and evaluation
 
-## Three-computer topology
+## Backend, not plugin deployment
 
-| Computer | Role | Network exposure |
-| --- | --- | --- |
-| **Computer 1** | Runs Ollama and the Guide/Gemma model. | Accept model requests only from computer 3 over Tailscale. |
-| **Computer 2** | Runs Ollama and the Clef model. | Accept Clef System One requests only from computer 3 over Tailscale. |
-| **Computer 3** | Runs the Fastify backend, this plugin, SQLite, and client-facing `/api` routes. | Receives authenticated client traffic. It is the only computer that initiates Guide and Clef model requests. |
+Do not register an Astral Fastify plugin or apply an Astral schema. Stage 1 is standalone review assets and HTTP evaluation tooling. The existing backend serves the authenticated `POST /api/agent/chat` route and owns all configuration, limits, tools, moderation, and persistence.
 
-Clients—iOS, web browsers, and other untrusted devices—MUST call computer 3's authenticated backend. They MUST NOT receive a model-host Tailscale URL, a model port, or an Ollama service credential/configuration value.
-
-The actual Tailscale machine names, IPs, and model service ports are deployment inputs; none are recorded in this repository. Replace the placeholders below with operator-controlled values.
-
-## Operator prerequisite: least privilege first
-
-Before starting the backend, the Tailscale operator MUST:
-
-1. verify all three machines are in the intended tailnet and record the computer-1 and computer-2 Tailscale IPs;
-2. create or verify ACL/grant rules permitting **only computer 3** to reach computer 1 and computer 2 on the selected Ollama TCP port (normally `11434`);
-3. deny direct model-port access from web clients, iOS devices, guest devices, and the public internet;
-4. avoid broad `0.0.0.0` binding for a model service when a Tailscale-address binding is available; and
-5. make the backend's client-facing authentication and network policy independent of the model-host ACLs.
-
-Do not use a Tailscale `serve` or public funnel for either model host. These model URLs are server-only configuration.
-
-## Bind Ollama to the Tailscale interface
-
-On each model computer, find its own Tailscale IP and bind Ollama to that address. For example, on computer 1:
+Backend configuration from the updated plan:
 
 ```sh
-tailscale ip -4
-OLLAMA_HOST=<computer-1-tailscale-ip>:11434 ollama serve
+GUIDE_BASE_URL=http://<model-host>:11434
+GUIDE_MODEL=gemma4:e4b-it-q4_K_M
+GUIDE_TIMEOUT_MS=<backend-approved-timeout>
 ```
 
-Use the equivalent binding on computer 2:
+Use the native Ollama origin, **not** a `/v1` root. The backend appends `/api/chat`; `GEMMA_*` aliases and `GUIDE_THINK` are backend-owned. Keep Clef configuration with the backend moderation service; this harness does not call it. Confirm exact defaults against the target backend revision.
 
-```sh
-tailscale ip -4
-OLLAMA_HOST=<computer-2-tailscale-ip>:11434 ollama serve
-```
+Model services must remain server-only: clients call the authenticated API, never the model port. Restrict model-host network access to the backend machine and keep credentials out of request bodies, recordings, and committed documentation.
 
-If Ollama is managed by systemd or another supervisor, set `OLLAMA_HOST` in that service's environment rather than only in an interactive shell, then restart through the operator's normal service procedure. Confirm that the bound address is the machine's Tailscale address—not a public or all-interface bind—before allowing computer 3.
-
-## Configure computer 3
-
-The Guide client and Clef client intentionally use different URL shapes:
-
-```sh
-# OpenAI-compatible root; MUST end in /v1.
-export GUIDE_BASE_URL=http://<computer-1-tailscale-ip>:11434/v1
-export GUIDE_MODEL=<guide-model-served-by-ollama>
-
-# Clef origin; MUST contain no path. The client appends /v1/systemone.
-export CLEF_BASE_URL=http://<computer-2-tailscale-ip>:11434
-export CLEF_MODEL=clef-flash
-
-# Optional harness limits; shown with their defaults.
-export AGENT_MAX_TOKENS=220
-export GEMMA_TIMEOUT_MS=20000
-export AGENT_QUEUE_DEPTH=8
-export AGENT_TOOL_TIMEOUT_MS=2000
-export AGENT_CONCURRENCY=1
-```
-
-`GUIDE_BASE_URL` is valid only as an absolute HTTP(S) URL ending in `/v1`; do not append `/chat/completions`. `CLEF_BASE_URL` is valid only as a bare origin; do not append `/v1`, `/v1/systemone`, credentials, queries, or fragments. `AGENT_CONCURRENCY` is intentionally fixed to one and is rejected if set to another value.
-
-Register the Fastify plugin with the backend's `/api` prefix. The plugin defines `/agent/chat`, yielding the externally served `POST /api/agent/chat`. Computer 3 supplies the same SQLite database and authenticated `BackendReads` implementation used by the application. The catalog must be available during plugin registration.
-
-## Operational commands
-
-Run commands from the `astral-harness` directory. These are integration commands, not proof that a deployment or model is available.
-
-### Build and local tests
+## Build and check local assets
 
 ```sh
 npm ci
 npm run build
 npm test
+npm run smoke
 ```
 
-### Prewarm
+The local smoke checks the evaluation protocol and stand-in, not an implementation of the production guide. It cannot establish shipped-backend acceptance. Native stand-in requests are deterministic fixtures, not measurements of Gemma quality.
 
-Prewarming requires a trusted local adapter that provides the backend database and complete `BackendReads` implementation; it is not safe to point a browser at this task.
+## Evaluation commands
 
 ```sh
-npm run prewarm -- --adapter /absolute/path/to/backend-agent-adapter.js
+# Terminal 1: loopback-only native Ollama stand-in.
+npm run eval:standin
+
+# Configure the separately running backend with
+# GUIDE_BASE_URL=http://127.0.0.1:11555, then evaluate its real HTTP route.
+API_BASE_URL=http://127.0.0.1:3000 \
+EVAL_COOKIE='<dedicated-user-session-cookie>' \
+STANDIN_EVIDENCE_URL=http://127.0.0.1:11555 \
+EVAL_ENVIRONMENT='backend-<actual-commit>-standin' \
+npm run eval:golden
 ```
 
-The adapter module's default export MUST be `PrewarmOptions`:
+`API_BASE_URL` is the backend origin. Authentication can instead use
+`EVAL_AUTHORIZATION='Bearer <token>'`; credentials are evaluation-process
+environment variables, never golden request fields. Avoid storing shell
+history containing real credentials; inject them through your secret manager.
 
-```ts
-{
-  db,             // better-sqlite3 database
-  backend,        // BackendReads
-  config,         // AgentConfig, including Guide URL and model
-  fetch?,         // optional fetch implementation
-  wikipedia?,     // optional boolean
-  limit?,         // optional number
-}
-```
+For real Gemma, point the backend at the real model and omit
+`STANDIN_EVIDENCE_URL`. Tool assertions without observations remain
+**unverified** even when the text looks correct.
 
-The runner populates trusted static knowledge and narration cache from the host catalog. It prints `{ requested, cached, failed }`; it does not synthesize audio.
+`EVAL_RECORD_DIR` opts into sanitized result recordings; use the ignored
+`harness/evals/recordings/` directory. No recordings means no persistent
+baseline artifact. `EVAL_ENVIRONMENT` labels the target, not proof of its
+identity. `PORT` changes the stand-in port (default 11555).
+`STANDIN_G10_MODE=503` enables explicitly simulated planner failure;
+`STANDIN_SCENARIOS=1,2` limits the stand-in's selected scenarios.
+`EVAL_GOLDEN=10` selects only golden 10 (any single ID from 1 through 12 is
+accepted). Use this when testing a stopped model; keep the API running.
+`STANDIN_HOST` optionally binds a specific private interface when the backend
+is on another host. Default is loopback; restrict that interface's port to
+the backend and evaluator, never the public internet.
+Chat requests/streams have a 70-second runner deadline; evidence calls have
+a five-second deadline. Missing evidence does not prevent the HTTP check.
+Blocked, failed, or unverified cases produce a nonzero CLI exit status.
 
-### Evals
 
-```sh
-# Deterministic 20-case golden fixtures with mock Guide and Clef servers.
-npm run eval:mock
+## External baseline prerequisites
 
-# Fixture backend against a real Guide endpoint from the environment.
-GUIDE_BASE_URL=http://<computer-1-tailscale-ip>:11434/v1 \
-GUIDE_MODEL=<guide-model-served-by-ollama> \
-npm run eval:live
+A real baseline needs all of the following:
+1. A running backend revision identified by its actual commit, with catalog data including the scenario stars.
+2. A login session or authorization credential for a dedicated evaluation user. Twelve cases consume twelve of the user's thirty hourly requests; repeated full runs will hit the rate limit.
+3. For scripted cases, the backend configured to use the stand-in's native Ollama URL and accessible from the backend host.
+4. Approved and non-approved community content, including the injection scenario, seeded through the backend's existing fixtures/admin process. This repository neither writes application data nor creates a migration.
+5. Backend model traces, or stand-in observations of actual tool results, for assertions that cannot be established from final text.
 
-# Or use a trusted host adapter. Its default export satisfies AgentOptions:
-# db, backend, authenticate, getUserId, config; optionally fetch, now,
-# headersForUser, and close.
-npm run eval:live -- --adapter /absolute/path/to/backend-agent-adapter.js
+The stand-in's default listener must not be exposed publicly. Fixture/control endpoints are local evaluation infrastructure, never production model APIs. Do not share a scripted stand-in between concurrent baseline runs.
 
-# Fixture-only sanitized recording, followed by replay of its newest JSONL file.
-AGENT_RECORD=true npm run eval:mock
-npm run eval:replay
-```
+For golden 10, stop the stand-in while leaving the backend running, unset `STANDIN_EVIDENCE_URL`, and run with `EVAL_GOLDEN=10`. This verifies the text/stream path; tool/failure evidence remains unverified. For observable simulated failure, restart with `STANDIN_G10_MODE=503` and keep the evidence URL configured. A normal stand-in does not inject an outage, so golden 10 is unverified in that configuration. Stage 1's existing backend may return `guide_unavailable` rather than the Stage 2 template; record that as a failure, not a successful template baseline.
 
-The live evaluator reports valid allowed-tool-call cases divided by cases expecting a tool call, and exits unsuccessfully below 85%. `AGENT_RECORD=true` is allowed only for `eval:mock` without an adapter. Replay reads the newest JSONL file in `src/agent/evals/recordings/`; it is not a live-model invocation.
+## Merge gates
 
-### Clef transport/classification check
+Siho reviews Stage 1 text and decides merges. Do not wire these assets into `apps/api/src/guide/service.ts` before explicit Stage 2 approval and rebasing on `backend/api` after the other agent's fixes have been pushed. No old backend snapshot is an approved integration base.
 
-```sh
-CLEF_BASE_URL=http://<computer-2-tailscale-ip>:11434 \
-CLEF_MODEL=clef-flash \
-npm run check:clef
-```
-
-`check:clef` is the checked-in CLI. It submits benign and threatening moderation samples plus one direct routing choice to Clef's `/v1/systemone`; it exits non-zero for invalid configuration, transport/protocol failure, or an unexpected classification. The plugin passes the same bounded optional classifier into skill routing. A missing, timed-out, invalid, or ineligible choice falls back to deterministic routing. This direct check still does not substitute for an authenticated end-to-end host integration test.
-
-## Current deployment boundaries and missing endpoints
-
-- No deployed backend URL, model-host Tailscale URL, or catalog endpoint is available in this repository.
-- The model hosts are Ollama services, but their model installation/pull commands and exact served model names are operational inputs not defined here.
-- `/api/agent/chat` exists only after the host registers `agentRoutes` with an `/api` prefix, authentication, SQLite, and every `BackendReads` helper.
-- The current `speech` event is script-only. `/agent/speak`, `/agent/audio/:id`, TTS credentials, audio storage, and audio cache endpoints are outside this package and must not be assumed to exist.
-- Clef is optional for moderation: an absent or failing Clef endpoint returns `pending` for non-rule-rejected content. The direct Clef check cannot substitute for an end-to-end host integration test.
-
-This document specifies required topology and commands only. It makes no claim that a live model, Tailscale route, Clef check, prewarm, or end-to-end deployment has passed.
+Blurb caches, sessions, voice/audio, additional tools/events, and per-user concurrency limits remain deferred. Do not infer approval from the presence of golden expectations for future behavior.
