@@ -74,7 +74,7 @@ export function runTool(ctx: Ctx, scope: Scope, name: string, rawArgs: unknown):
       return starFacts(ctx, id);
     case "calculate_travel_time": {
       const speed = args.speed_km_s;
-      if (typeof speed !== "number" || !Number.isFinite(speed) || speed <= 0 || speed > 299792.458) throw new ToolError("speed_km_s must be positive");
+      if (typeof speed !== "number" || !Number.isFinite(speed) || speed <= 0) throw new ToolError("speed_km_s must be positive");
       const t = travelTime(ctx.catalog.get(id)!, speed);
       return { hyg_id: id, speed_km_s: speed, distance_ly: t.distance_ly, travel_years: t.travel_years == null ? null : Math.round(t.travel_years), note: "constant speed, no relativity" };
     }

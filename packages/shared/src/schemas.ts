@@ -110,7 +110,7 @@ export const Star = {
 export const TravelTimeQuery = {
   type: "object",
   required: ["speed_km_s"],
-  properties: { speed_km_s: { type: "number", exclusiveMinimum: 0, maximum: 299792.458 } },
+  properties: { speed_km_s: { type: "number", exclusiveMinimum: 0 } }, // any finite positive speed (Infinity rejected in the route)
 } as const;
 
 export const TravelTimeResponse = {

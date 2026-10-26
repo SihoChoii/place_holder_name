@@ -149,7 +149,7 @@ Email is trimmed and lowercased. Fixtures: `auth.signup.201.json`, `me.200.json`
 | Method & path | Request | Success |
 | --- | --- | --- |
 | `GET /stars/:hyg_id` | — | `200 Star`. `404 not_found` for unknown IDs |
-| `GET /stars/:hyg_id/travel-time?speed_km_s=17` | `speed_km_s` finite, > 0, ≤ 299792.458 | `200 { hyg_id, speed_km_s, distance_ly, travel_seconds, travel_years, reason, model }`; distance unknown → numbers `null`, `reason: "distance_unknown"` |
+| `GET /stars/:hyg_id/travel-time?speed_km_s=17` | `speed_km_s` finite, > 0 (no upper cap; constant-speed model) | `200 { hyg_id, speed_km_s, distance_ly, travel_seconds, travel_years, reason, model }`; distance unknown → numbers `null`, `reason: "distance_unknown"` |
 | `GET /stars/:hyg_id/tags?cursor&limit` | — | `200 { items: Tag[], next_cursor }` (visible to you) |
 | `POST /stars/:hyg_id/claim` | header `Idempotency-Key`; no body | `201 { claim: ClaimInfo, next_claim_at }`. `400 unknown_star`, `409 already_claimed`, `429 on_cooldown` (+ `retry_after_seconds`). Failed attempts do not start the cooldown |
 

@@ -2367,7 +2367,187 @@
         },
         "responses": {
           "200": {
-            "description": "Default Response"
+            "description": "text/event-stream: start, delta…, then done or error {code: guide_unavailable|guide_timeout|internal_error}",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "description": "text/event-stream: start, delta…, then done or error {code: guide_unavailable|guide_timeout|internal_error}",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retry_after_seconds": {
+                          "type": "integer"
+                        },
+                        "details": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retry_after_seconds": {
+                          "type": "integer"
+                        },
+                        "details": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retry_after_seconds": {
+                          "type": "integer"
+                        },
+                        "details": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "guide_busy or guide_unavailable",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retry_after_seconds": {
+                          "type": "integer"
+                        },
+                        "details": {}
+                      }
+                    }
+                  },
+                  "description": "guide_busy or guide_unavailable"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "guide_timeout: the 60 s guide deadline expired before streaming started",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retry_after_seconds": {
+                          "type": "integer"
+                        },
+                        "details": {}
+                      }
+                    }
+                  },
+                  "description": "guide_timeout: the 60 s guide deadline expired before streaming started"
+                }
+              }
+            }
           }
         }
       }
@@ -2623,8 +2803,7 @@
           {
             "schema": {
               "type": "number",
-              "exclusiveMinimum": 0,
-              "maximum": 299792.458
+              "exclusiveMinimum": 0
             },
             "in": "query",
             "name": "speed_km_s",

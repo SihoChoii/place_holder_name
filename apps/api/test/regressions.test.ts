@@ -9,7 +9,7 @@ import { randomUUID } from "node:crypto";
 import { acquireProcessLock, ProcessLockError } from "../src/lib/lock.js";
 import { REPO_ROOT } from "../src/lib/paths.js";
 import { boundedToolResults, buildMessages, fitMessages, MODEL_INPUT_BUDGET } from "../src/guide/service.js";
-import { TOOL_SCHEMAS } from "../src/guide/tools.js";
+import { runTool, TOOL_SCHEMAS } from "../src/guide/tools.js";
 import { validateLink } from "../src/media/links.js";
 import { ModerationWorker } from "../src/moderation/worker.js";
 import { form, harness, key, signup } from "./helpers.js";
@@ -280,4 +280,21 @@ test("link validation runs IPv4 embedded in IPv4-compatible, NAT64 and 6to4 IPv6
     assert.doesNotThrow(() => validateLink(url), url);
   }
   assert.equal(validateLink("https://[64:ff9b::8.8.8.8]/"), "https://[64:ff9b::808:808]/");
+});
+
+test("travel time accepts any finite positive speed (no light-speed cap) in REST and the guide tool", async (t) => {
+  const h = await harness(); t.after(() => h.close());
+  const a = await signup(h, "speed");
+  for (const speed of ["17", "299792.458", "299792.459", "1e9", "1.5e300"]) {
+    const res = await h.server.app.inject({ url: `/api/stars/32263/travel-time?speed_km_s=${speed}`, headers: a.auth });
+    assert.equal(res.statusCode, 200, `${speed} ${res.body}`);
+    assert.equal(res.json().speed_km_s, Number(speed));
+  }
+  for (const speed of ["0", "-1", "Infinity", "1e400", "NaN", "abc"]) {
+    const res = await h.server.app.inject({ url: `/api/stars/32263/travel-time?speed_km_s=${speed}`, headers: a.auth });
+    assert.equal(res.statusCode, 400, `${speed} ${res.body}`);
+  }
+  const tool = runTool(h.server.ctx, null, "calculate_travel_time", { hyg_id: 32263, speed_km_s: 1e6 }) as { speed_km_s: number };
+  assert.equal(tool.speed_km_s, 1e6);
+  assert.throws(() => runTool(h.server.ctx, null, "calculate_travel_time", { hyg_id: 32263, speed_km_s: 0 }), /positive/);
 });

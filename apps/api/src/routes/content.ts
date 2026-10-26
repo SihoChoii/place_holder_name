@@ -28,7 +28,11 @@ export async function contentRoutes(app: FastifyInstance, { ctx, store }: { ctx:
 
   app.get<{ Params: { hyg_id: number }; Querystring: { speed_km_s: number } }>("/stars/:hyg_id/travel-time", {
     schema: { tags: ["stars"], params: hygParam, querystring: schemas.TravelTimeQuery, response: { 200: schemas.TravelTimeResponse, ...err } },
-  }, async (req) => travelTime(getStarOr404(ctx, req.params.hyg_id), req.query.speed_km_s));
+  }, async (req) => {
+    const speed = req.query.speed_km_s;
+    if (!Number.isFinite(speed)) throw badRequest("speed_km_s must be a finite positive number.", "validation_failed");
+    return travelTime(getStarOr404(ctx, req.params.hyg_id), speed);
+  });
 
   app.get<{ Params: { hyg_id: number }; Querystring: Page }>("/stars/:hyg_id/tags", {
     schema: { tags: ["stars"], params: hygParam, querystring: schemas.PageQuery, response: { 200: schemas.TagPage, ...err } },
