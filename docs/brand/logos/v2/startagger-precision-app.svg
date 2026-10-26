@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">StarTagger — Precision star</title>
+  <desc id="desc">A diagonal four-point star with two extended rays and precise concave curves.</desc>
+  <path fill="#000000" d="M0 0h256v256H0z"/>
+  <g fill="#FFFFFF">
+<path transform="translate(128 128) rotate(45)" d="M0 -144 C0 -38 18 -16 64 0 C18 16 0 38 0 144 C0 38 -18 16 -64 0 C-18 -16 0 -38 0 -144Z"/>
+  </g>
+</svg>

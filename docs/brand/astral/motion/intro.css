@@ -1,0 +1,12 @@
+/* Base styles are the complete, static identity: safe before JS and without motion. */
+[data-intro-frame]{fill:none;stroke:currentColor;stroke-width:12;stroke-linejoin:miter;stroke-linecap:butt;stroke-dasharray:148;stroke-dashoffset:0}
+[data-intro-star]{transform-box:fill-box;transform-origin:center}
+[data-intro-name]{transform-box:fill-box;transform-origin:center}
+.astral-intro-svg{display:block;width:100%;height:auto;overflow:visible;fill:currentColor}
+.intro-mobile{display:none}
+.hero-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:end}
+.hero-actions a{display:flex;align-items:center;min-height:44px;padding-inline:12px;font-size:13px}
+.hero h1 .intro-desktop{width:100%;height:auto}
+@media(max-width:600px){.intro-desktop{display:none}.intro-mobile{display:block}.hero h1 .intro-mobile{max-height:230px;object-fit:contain}.hero-toolbar{align-items:start}.hero-actions{gap:8px}.hero-actions a{padding-inline:4px;font-size:12px}.hero-actions button{padding-inline:10px}.hero-toolbar>p{padding-top:12px}.hero h1{margin-inline:0}}
+
+@media(max-width:600px){.hero-toolbar{align-items:stretch;flex-direction:column;gap:12px}.hero-toolbar>p{padding-top:0}.hero-actions{justify-content:flex-start}}
