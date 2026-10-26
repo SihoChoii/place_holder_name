@@ -35,6 +35,35 @@ ollama ps                            # verify context + GPU/CPU placement
 From the backend laptop: `pnpm models:check` (then `pnpm models:check --write-lock` once all pass).
 If Clef fails on the GPU laptop, swap roles (Clef on the 24 GB Mac, API on the GPU laptop) **before** creating demo data.
 
+## Unsloth model hosts (OpenAI-compatible)
+
+Gemma and Clef can be served by Unsloth instead of Ollama. The backend then talks to
+`/v1/chat/completions` (guide), `/v1/systemone` (moderation) and `/v1/models` (health, `models:check`),
+sending `Authorization: Bearer <key>`. Keys live only in the backend machine's `.env`; they are never
+logged, returned in errors or shown in `/api/health/ready`.
+
+```
+GUIDE_BASE_URL=http://<gemma-host>:8888
+GUIDE_MODEL=unsloth/gemma-4-26B-A4B-it-qat-GGUF
+GUIDE_API_STYLE=openai
+GUIDE_THINK=false            # sends chat_template_kwargs.enable_thinking=false (required: otherwise Gemma thinks away the whole budget)
+GUIDE_API_KEY=<set locally>
+CLEF_BASE_URL=http://<clef-host>:8888
+CLEF_MODEL=bartowski/Cloudflare_clef-flash-GGUF:Q4_K_S
+CLEF_API_STYLE=openai
+CLEF_API_KEY=<set locally>
+```
+
+Operator checklist on each model laptop:
+
+1. Start Unsloth bound to all interfaces so other devices can reach it:
+   `unsloth studio --api-only -H 0.0.0.0 -p 8888` (the default `127.0.0.1` is reachable only from that laptop).
+2. Load the model (`unsloth/gemma-4-26B-A4B-it-qat-GGUF` on the guide host, `bartowski/Cloudflare_clef-flash-GGUF` Q4_K_S on the Clef host).
+3. On the Clef host turn on **Settings > API > Decision API** (enables `/v1/systemone`).
+4. From the backend machine run `pnpm models:check` (then `--write-lock`). In openai style the lock records the
+   model id (no Ollama version/digest); readiness reports `drift` only when the id changes, and `unavailable`
+   when the model is not listed or not loaded.
+
 ## Start / stop
 
 ```bash
