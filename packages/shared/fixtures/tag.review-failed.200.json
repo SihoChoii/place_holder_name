@@ -1,0 +1,18 @@
+{
+  "id": "4c6e8a0b-2d4f-4b6c-8a1e-9d1f3b5c7e57",
+  "hyg_id": 32263,
+  "star_name": "Sirius",
+  "author": {
+    "id": "7d0f3a52-1c7e-4b8e-9a51-2f0c6f5e9b01",
+    "display_name": "Ada"
+  },
+  "note": "Waiting for review",
+  "media": [],
+  "moderation_status": "pending",
+  "created_at": 1761432000000,
+  "reaction_counts": {},
+  "comment_count": 0,
+  "recent_comments": [],
+  "my_reactions": [],
+  "processing_state": "review_failed"
+}

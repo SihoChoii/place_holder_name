@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build
+dist/
+.next/
+.turbo/
+out/
+build/
+*.tsbuildinfo
+
+# Env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# OS / IDE
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# iOS
+apps/ios/**/DerivedData/
+apps/ios/**/xcuserdata/
+apps/ios/**/*.xcuserstate
+apps/ios/.build/
+
+*.log
+coverage/
+
+# Local application state (database, media, backups)
+data/

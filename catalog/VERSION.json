@@ -1,0 +1,17 @@
+{
+  "catalog_version": "hyg-4.4-mag6.5-20261025",
+  "file": "stars.json",
+  "sha256": "e4ff3d913142288763a8efacd4e4527919f8617ac3726c37c0dae588558cd58b",
+  "star_count": 8920,
+  "id_field": "hyg_id",
+  "coordinates": "ra_deg/dec_deg in degrees, J2000; the API exposes ra_hours = ra_deg / 15",
+  "unknown_distance": "dist_ly is null when HYG uses its 100000 pc sentinel",
+  "attribution": [
+    "HYG Database v4.4, astronexus (codeberg.org/astronexus/hyg), CC BY-SA 4.0",
+    "Stellarium modern sky culture constellation lines, CC BY-SA 4.0",
+    "IAU Catalog of Star Names (WGSN), CC BY",
+    "NASA Exoplanet Archive (NExScI), Planetary Systems Composite Parameters",
+    "Wikidata (CC0) for HIP to Wikipedia titles"
+  ],
+  "license_note": "Derived dataset redistributed under CC BY-SA 4.0"
+}

@@ -1,0 +1,18 @@
+{
+  "hyg_id": 1,
+  "hip_id": null,
+  "name": null,
+  "bayer_flamsteed": "9Alp CMa",
+  "constellation": "CMa",
+  "ra_hours": 6.752481,
+  "dec_degrees": -16.71612,
+  "epoch": "J2000",
+  "magnitude": -1.44,
+  "distance_ly": null,
+  "distance_unknown_reason": "distance_unknown",
+  "spectral_type": "A0m...",
+  "exoplanet_count": 0,
+  "wiki_title": "Sirius A",
+  "catalog_version": "hyg-4.4-mag6.5-20261025",
+  "claim": null
+}

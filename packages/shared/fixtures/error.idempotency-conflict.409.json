@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "idempotency_conflict",
+    "message": "This Idempotency-Key was used with a different request."
+  }
+}

@@ -1,0 +1,28 @@
+name: Stargaze
+options:
+  bundleIdPrefix: com.stargaze
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    TARGETED_DEVICE_FAMILY: "1"
+    PRODUCT_BUNDLE_IDENTIFIER: com.stargaze.app
+    CODE_SIGN_STYLE: Automatic
+
+targets:
+  Stargaze:
+    type: application
+    platform: iOS
+    sources:
+      - path: Stargaze
+    settings:
+      base:
+        PRODUCT_NAME: Stargaze
+        GENERATE_INFOPLIST_FILE: true
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 0.0.0
+        INFOPLIST_KEY_UILaunchScreen_Generation: true
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait

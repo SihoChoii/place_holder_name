@@ -1,0 +1,9 @@
+{
+  "hyg_id": 1,
+  "speed_km_s": 17,
+  "distance_ly": null,
+  "travel_seconds": null,
+  "travel_years": null,
+  "reason": "distance_unknown",
+  "model": "distance / speed; constant speed, no acceleration or relativistic corrections"
+}

@@ -1,0 +1,26 @@
+{
+  "hyg_id": 32263,
+  "hip_id": 32349,
+  "name": "Sirius",
+  "bayer_flamsteed": "9Alp CMa",
+  "constellation": "CMa",
+  "ra_hours": 6.752481,
+  "dec_degrees": -16.71612,
+  "epoch": "J2000",
+  "magnitude": -1.44,
+  "distance_ly": 8.6,
+  "distance_unknown_reason": null,
+  "spectral_type": "A0m...",
+  "exoplanet_count": 0,
+  "wiki_title": "Sirius A",
+  "catalog_version": "hyg-4.4-mag6.5-20261025",
+  "claim": {
+    "id": "0b6a7a4e-3f0c-4d8b-a1e2-5c9d7f3b2a10",
+    "hyg_id": 32263,
+    "owner": {
+      "id": "7d0f3a52-1c7e-4b8e-9a51-2f0c6f5e9b01",
+      "display_name": "Ada"
+    },
+    "claimed_at": 1761431400000
+  }
+}

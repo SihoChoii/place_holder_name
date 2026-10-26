@@ -1,0 +1,12 @@
+{
+  "claim": {
+    "id": "0b6a7a4e-3f0c-4d8b-a1e2-5c9d7f3b2a10",
+    "hyg_id": 32263,
+    "owner": {
+      "id": "7d0f3a52-1c7e-4b8e-9a51-2f0c6f5e9b01",
+      "display_name": "Ada"
+    },
+    "claimed_at": 1761431400000
+  },
+  "next_claim_at": 1761435000000
+}

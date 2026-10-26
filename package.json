@@ -1,0 +1,34 @@
+{
+  "name": "stargaze",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "setup": "bash scripts/setup.sh",
+    "build": "turbo run build",
+    "start": "bash scripts/start.sh",
+    "dev": "turbo watch dev --filter=@stargaze/api --filter=@stargaze/web --env-mode=loose",
+    "dev:api": "turbo watch dev --filter=@stargaze/api --env-mode=loose",
+    "dev:web": "pnpm --filter @stargaze/web dev",
+    "typecheck": "turbo run typecheck",
+    "lint": "pnpm typecheck",
+    "test": "pnpm build && pnpm --filter @stargaze/api test",
+    "db:migrate": "node apps/api/dist/scripts/migrate.js",
+    "db:backup": "node apps/api/dist/scripts/backup.js",
+    "seed": "node apps/api/dist/scripts/seed.js",
+    "smoke": "node apps/api/dist/scripts/smoke.js",
+    "models:check": "node apps/api/dist/scripts/models-check.js",
+    "moderation:list": "node apps/api/dist/scripts/moderation.js list",
+    "moderation:retry": "node apps/api/dist/scripts/moderation.js retry",
+    "moderation:approve": "node apps/api/dist/scripts/moderation.js approve",
+    "openapi": "node apps/api/dist/scripts/openapi.js",
+    "ios:gen": "cd apps/ios && xcodegen generate",
+    "build:all": "turbo run build"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.4",
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "user": {
+    "id": "7d0f3a52-1c7e-4b8e-9a51-2f0c6f5e9b01",
+    "display_name": "Ada",
+    "email": "ada@example.com",
+    "created_at": 1761431400000
+  },
+  "server_time": 1761433200000,
+  "next_claim_at": null,
+  "claim_cooldown_seconds": 3600
+}
