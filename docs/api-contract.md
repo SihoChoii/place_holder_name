@@ -237,7 +237,8 @@ Public `Tag` objects omit `my_reactions` and `processing_state`; image URLs use 
 - No system messages, model names or URLs are accepted.
 
 Errors before streaming are normal JSON errors (`400`, `401`, `429`, `503 guide_busy` when 1 active + 2 waiting,
-`503 guide_unavailable`). Otherwise the response is `200 text/event-stream`:
+`503 guide_unavailable`, `504 guide_timeout` when the model or the 60 s deadline times out before streaming).
+A client disconnect cancels the work silently. Otherwise the response is `200 text/event-stream`:
 
 ```text
 event: start

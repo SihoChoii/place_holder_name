@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { harness, signup } from "./helpers.js";
 import { GuideQueue } from "../src/guide/service.js";
+import { toModelError } from "../src/models/http.js";
 
 const SIRIUS = 32263, CANOPUS = 30365;
 
@@ -107,4 +108,31 @@ test("guide over real HTTP: deltas arrive incrementally and a client disconnect 
   const again = await fetch(`${url}/api/agent/chat`, { method: "POST", headers, body });
   assert.equal(again.status, 200);
   assert.match(await again.text(), /event: done/);
+});
+
+test("guide deadline returns 504 guide_timeout before streaming and an SSE guide_timeout error after start", { timeout: 15_000 }, async (t) => {
+  const h = await harness({ GUIDE_TIMEOUT_MS: "1000" }); t.after(() => h.close());
+  const a = await signup(h, "deadline");
+  const payload = { mode: "explore", messages: [{ role: "user", content: "Tell me about Sirius" }] };
+  h.fake.mode = "hang";
+  const before = await h.server.app.inject({ method: "POST", url: "/api/agent/chat", headers: a.auth, payload });
+  assert.equal(before.statusCode, 504);
+  assert.equal(before.json().error.code, "guide_timeout");
+
+  const chat = h.server.ctx.gemma.chat.bind(h.server.ctx.gemma);
+  h.server.ctx.gemma.chat = async (o) => { h.fake.mode = "ok"; const m = await chat(o); h.fake.mode = "hang"; return m; };
+  const after = await h.server.app.inject({ method: "POST", url: "/api/agent/chat", headers: a.auth, payload });
+  assert.equal(after.statusCode, 200);
+  assert.match(after.body, /event: start/);
+  assert.match(after.body, /event: error\ndata: \{"code":"guide_timeout"/);
+  assert.doesNotMatch(after.body, /event: done/);
+});
+
+test("model errors: caller deadline is a timeout, caller cancellation is aborted", () => {
+  const timedOut = new AbortController(); timedOut.abort(new DOMException("deadline", "TimeoutError"));
+  const cancelled = new AbortController(); cancelled.abort(new Error("client disconnected"));
+  assert.equal(toModelError(timedOut.signal.reason, timedOut.signal).kind, "timeout");
+  assert.equal(toModelError(cancelled.signal.reason, cancelled.signal).kind, "aborted");
+  assert.equal(toModelError(new DOMException("t", "TimeoutError")).kind, "timeout");
+  assert.equal(toModelError(new TypeError("fetch failed")).kind, "unreachable");
 });

@@ -9,7 +9,15 @@ export default async function agentRoutes(app: FastifyInstance, { ctx, queue }: 
   app.post<{ Body: ChatRequest }>("/agent/chat", {
     bodyLimit: LIMITS.chatBodyMaxBytes,
     preHandler: app.auth,
-    schema: { tags: ["guide"], body: schemas.ChatBody, produces: ["text/event-stream"] },
+    schema: {
+      tags: ["guide"], body: schemas.ChatBody, produces: ["text/event-stream"],
+      response: {
+        200: { description: "text/event-stream: start, delta…, then done or error {code: guide_unavailable|guide_timeout|internal_error}", type: "string" },
+        400: schemas.ErrorBody, 401: schemas.ErrorBody, 429: schemas.ErrorBody,
+        503: { ...schemas.ErrorBody, description: "guide_busy or guide_unavailable" },
+        504: { ...schemas.ErrorBody, description: "guide_timeout: the 60 s guide deadline expired before streaming started" },
+      },
+    },
   }, async (req, reply) => {
     await handleChat(ctx, queue, req, reply, requireUser(req.viewer), req.body);
     return reply;

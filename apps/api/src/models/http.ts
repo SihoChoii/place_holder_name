@@ -25,11 +25,15 @@ export async function postJson(url: string, body: unknown, opts: { timeoutMs: nu
   }
 }
 
+/**
+ * A deadline (our own timeout or a caller deadline signal) is "timeout"; any other abort of the caller's
+ * signal (client disconnect, shutdown) is "aborted" so it can be dropped quietly.
+ */
 export function toModelError(e: unknown, signal?: AbortSignal): ModelError {
   if (e instanceof ModelError) return e;
   const name = (e as Error)?.name;
-  if (signal?.aborted) return new ModelError("aborted", "request cancelled");
-  if (name === "TimeoutError" || name === "AbortError") return new ModelError("timeout", "model request timed out");
+  if (signal?.aborted && (signal.reason as Error | undefined)?.name !== "TimeoutError") return new ModelError("aborted", "request cancelled");
+  if (name === "TimeoutError" || name === "AbortError" || signal?.aborted) return new ModelError("timeout", "model request timed out");
   return new ModelError("unreachable", `model host unreachable (${(e as Error)?.message ?? e})`);
 }
 
