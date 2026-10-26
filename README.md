@@ -27,7 +27,7 @@ LAN inference hosts running Ollama: **Gemma** for the guide (`/api/chat`) and **
 Prerequisites: Node 24 LTS (≥ 20 works), pnpm 9 (`corepack enable`). No Docker.
 
 ```bash
-pnpm setup            # .env (+ generated JWT_SECRET, never overwritten), install, build, migrate
+pnpm run setup        # .env (+ generated JWT_SECRET, never overwritten), install, build, migrate
 # edit .env: GUIDE_BASE_URL, CLEF_BASE_URL, APP_ORIGIN=http://<backend-lan-host>:4000
 pnpm models:check     # real preflight against both model hosts
 pnpm start            # API + exported website on 0.0.0.0:4000
@@ -42,7 +42,7 @@ Docs: [API contract](docs/api-contract.md) · [route matrix](docs/route-matrix.m
 
 | Command | What it does |
 | --- | --- |
-| `pnpm setup` | Install/prepare `.env`, dependencies, build, migrations (no Docker, never overwrites `.env`) |
+| `pnpm run setup` | Install/prepare `.env`, dependencies, build, migrations (no Docker, never overwrites `.env`). Use `run`: plain `pnpm setup` is pnpm's own command and edits your shell profile instead |
 | `pnpm build` / `pnpm start` | Build shared/db/api and export Next.js; start one built API process serving `apps/web/out` and `/api` |
 | `pnpm dev:api` | API in watch mode (tsx) |
 | `pnpm dev` / `pnpm dev:api` | Turbo watches dependency sources, rebuilds emitted packages, then restarts affected development servers |

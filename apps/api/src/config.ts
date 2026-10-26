@@ -69,7 +69,7 @@ export function loadConfig(env: Env = process.env, { dotenv = true, partial = fa
   if (dotenv) loadDotenv({ path: fromRoot(".env"), quiet: true } as never);
   // partial: storage-only tools (migrate, backup, moderation CLI) don't need secrets or model hosts.
   const jwtSecret = pick(env, "JWT_SECRET") ?? (partial ? "-".repeat(32) : "");
-  if (jwtSecret.length < 32) throw new Error("JWT_SECRET must be set to at least 32 characters (run pnpm setup)");
+  if (jwtSecret.length < 32) throw new Error("JWT_SECRET must be set to at least 32 characters (run pnpm run setup)");
   const origins = (pick(env, "APP_ORIGIN", "CORS_ORIGIN") ?? "http://localhost:3000")
     .split(",").map((o) => o.trim()).filter(Boolean).map((o) => new URL(o).origin);
   const trust = pick(env, "TRUST_PROXY");
