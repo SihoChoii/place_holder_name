@@ -11,6 +11,7 @@ import { REPO_ROOT } from "../src/lib/paths.js";
 import { boundedToolResults, buildMessages, fitMessages, MODEL_INPUT_BUDGET } from "../src/guide/service.js";
 import { TOOL_SCHEMAS } from "../src/guide/tools.js";
 import { validateLink } from "../src/media/links.js";
+import { ModerationWorker } from "../src/moderation/worker.js";
 import { form, harness, key, signup } from "./helpers.js";
 
 test("process mutex: simultaneous startup has one owner; crash releases it; losers cannot unlink it", { timeout: 15_000 }, async () => {
@@ -179,4 +180,41 @@ test("session tokens must carry iss, aud, sub and exp even when signed with the 
   }
   const cookie = await h.server.app.inject({ url: "/api/me", headers: { cookie: `st_session=${forged[0]}` } });
   assert.equal(cookie.statusCode, 401);
+});
+
+test("moderation loop survives thrown DB/adapter errors, logs them, and keeps processing", { timeout: 10_000 }, async (t) => {
+  const h = await harness(); t.after(() => h.close());
+  const a = await signup(h, "loop");
+  await h.server.app.inject({ method: "POST", url: "/api/stars/32263/claim", headers: { ...a.auth, "idempotency-key": key() } });
+  const post = await h.server.app.inject({ method: "POST", url: "/api/tags", headers: { ...a.auth, "idempotency-key": key() },
+    payload: form({ hyg_id: "32263", note: "clear skies" }) });
+  assert.equal(post.statusCode, 201);
+  const logs: string[] = [];
+  const worker = new ModerationWorker(h.server.ctx, h.server.store, (_o, msg) => logs.push(msg));
+  worker.idleMs = 20;
+  const jobs = h.server.ctx.jobs;
+  const nextDue = jobs.nextDue.bind(jobs), recordFailure = jobs.recordFailure.bind(jobs);
+  let dbFailures = 2;
+  jobs.nextDue = (now) => { if (dbFailures-- > 0) throw new Error("SQLITE_BUSY: database is locked"); return nextDue(now); };
+  jobs.recordFailure = () => { throw new Error("SQLITE_IOERR"); }; // an error inside the job error path too
+  const clef = h.server.ctx.clef, decide = clef.decide.bind(clef);
+  let adapterFailures = 1;
+  clef.decide = (...args) => (adapterFailures-- > 0 ? Promise.reject(new Error("adapter exploded")) : decide(...args));
+  const unhandled: unknown[] = [];
+  const onUnhandled = (e: unknown) => unhandled.push(e);
+  process.on("unhandledRejection", onUnhandled);
+  t.after(() => { process.off("unhandledRejection", onUnhandled); jobs.recordFailure = recordFailure; });
+  worker.start();
+  try {
+    const id = post.json().tag.id;
+    for (let i = 0; i < 200; i++) {
+      const tag = h.server.ctx.db.prepare("SELECT moderation_status FROM tags WHERE id = ?").get(id) as { moderation_status: string };
+      if (tag.moderation_status === "approved") break;
+      await new Promise((r) => setTimeout(r, 25));
+    }
+    const tag = h.server.ctx.db.prepare("SELECT moderation_status FROM tags WHERE id = ?").get(id) as { moderation_status: string };
+    assert.equal(tag.moderation_status, "approved");
+    assert.ok(logs.filter((m) => m === "moderation loop error").length >= 3, logs.join(","));
+    assert.deepEqual(unhandled, []);
+  } finally { await worker.stop(); }
 });

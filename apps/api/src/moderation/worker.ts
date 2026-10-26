@@ -16,7 +16,11 @@ export class ModerationWorker {
   private running: Promise<void> | undefined;
   private stopped = true;
   private abort = new AbortController();
+  private loopFailures = 0;
   lastError: string | null = null;
+  /** Longest idle wait between passes; loop errors back off from here up to maxBackoffMs. */
+  idleMs = 5000;
+  maxBackoffMs = 60_000;
 
   constructor(private ctx: Ctx, private store: MediaStore, private log: (o: object, msg: string) => void) {}
 
@@ -30,7 +34,11 @@ export class ModerationWorker {
   wake() {
     if (this.stopped || this.running) return;
     clearTimeout(this.timer);
-    this.timer = setTimeout(() => void this.tick(), 0);
+    this.schedule(0);
+  }
+
+  private schedule(delay: number) {
+    this.timer = setTimeout(() => void this.tick(), delay);
   }
 
   async stop() {
@@ -40,14 +48,25 @@ export class ModerationWorker {
     await this.running;
   }
 
+  /** One pass. Never rejects: an unexpected DB/adapter error is logged and the loop retries with backoff. */
   private async tick() {
     if (this.stopped || this.running) return;
-    this.running = this.drain().finally(() => (this.running = undefined));
-    await this.running;
-    if (this.stopped) return;
-    const next = this.ctx.jobs.nextDueAt();
-    const delay = next == null ? 5000 : Math.min(Math.max(next - this.ctx.now(), 0), 5000);
-    this.timer = setTimeout(() => void this.tick(), delay);
+    let delay: number;
+    try {
+      this.running = this.drain().finally(() => (this.running = undefined));
+      await this.running;
+      if (this.stopped) return;
+      const next = this.ctx.jobs.nextDueAt();
+      delay = next == null ? this.idleMs : Math.min(Math.max(next - this.ctx.now(), 0), this.idleMs);
+      this.loopFailures = 0;
+    } catch (e) {
+      if (this.stopped) return;
+      this.loopFailures++;
+      this.lastError = `internal: ${(e as Error)?.message ?? e}`;
+      delay = Math.min(this.idleMs * 2 ** (this.loopFailures - 1), this.maxBackoffMs);
+      try { this.log({ error_class: "internal", consecutive_failures: this.loopFailures, retry_in_ms: delay }, "moderation loop error"); } catch { /* logging must not stop the loop */ }
+    }
+    this.schedule(delay);
   }
 
   /** Process due jobs one at a time until none is due. */
