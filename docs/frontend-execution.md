@@ -91,7 +91,7 @@ Evidence: [browser results](/Users/sihochoi/.codex/visualizations/2026/10/26/01a
 
 - Full FE-15 ownership coverage: no public claim-summary endpoint exists. Unchecked stars remain unknown; the UI states that coverage is partial. This is the plan's permitted D3 subset, not completion of the full ownership-index feature.
 - Real approved content from live moderation was unavailable. Positive approved-content UI cases are fixture-tested; real API pending/rejected visibility and ownership/auth are integrated. No approvals were manufactured and no model success was fabricated.
-- Signup, claim/reaction/comment/post writes in the web UI, guide chat, geocoding, expanded search overlays, thumbnails, and advanced effects were deferred as instructed.
+- Signup, claim/reaction/comment/post writes in the web UI, geocoding, expanded search overlays, thumbnails, and advanced effects were deferred as instructed. Guide chat and blurb panel UI are now present on the star page.
 - No physical phone, Safari/WebKit, screen reader, true browser 200% zoom, LAN HTTPS, real-device GPS, low-end GPU, slow mobile network, or long-duration performance acceptance was performed. Narrow layouts, keyboard operation, touch events, reduced motion, and GPS error callbacks were exercised in Chromium.
 - The sky is geometric and approximate: no refraction, proper motion, lunar/planet rendering, sensor orientation, terrain, or photorealistic atmospheric effects. Rendering does not require WebGL. Both unsupported canvas and catalog errors lead to explicit fallbacks; those fallbacks are not represented as a completed sky.
 - Local saved stars/notes remain browser-specific and are not synced to the account. The full product roadmap and iOS/device/model gates remain open.

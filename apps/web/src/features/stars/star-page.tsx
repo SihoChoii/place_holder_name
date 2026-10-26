@@ -8,6 +8,8 @@ import { formatDec, formatRA } from "@/lib/star-catalog";
 import { usePublicStar, ownership, isFresh } from "@/lib/api/public-star";
 import { starHref } from "@/lib/api/client";
 import { PublicPosts, dateLabel } from "./public-posts";
+import { GuideChat } from "@/features/guide/guide-chat";
+import { StarBlurb } from "@/features/guide/star-blurb";
 
 const number = (v: number | null, unit = "") =>
   v === null
@@ -68,6 +70,8 @@ export function StarPage() {
     id !== null && (!catalog.data || star) ? id : null,
   );
   const [copied, setCopied] = useState("");
+  const [showGuide, setShowGuide] = useState(false);
+
   useEffect(() => {
     if (star) document.title = `${star.name} · Stargaze`;
     return () => {
@@ -137,9 +141,22 @@ export function StarPage() {
           >
             Copy link
           </Button>
+          <Button variant="outline" onClick={() => setShowGuide(!showGuide)}>
+            {showGuide ? "Close guide" : "Ask guide"}
+          </Button>
           <span role="status">{copied}</span>
         </div>
       </header>
+      {showGuide && id && (
+        <div className="guide-chat-container">
+          <GuideChat
+            mode="local"
+            scopeHygIds={[id]}
+            selectedHygId={id}
+            onClose={() => setShowGuide(false)}
+          />
+        </div>
+      )}
       {state.error && (
         <div className="inline-error" role="alert">
           <p>
@@ -189,7 +206,10 @@ export function StarPage() {
         </section>
         <aside>
           {star ? (
-            <Facts star={star} />
+            <>
+              <Facts star={star} />
+              {id && <StarBlurb hygId={id} />}
+            </>
           ) : catalog.error ? (
             <div role="alert">
               <p>{catalog.error}</p>
