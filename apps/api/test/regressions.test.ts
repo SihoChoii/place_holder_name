@@ -67,20 +67,38 @@ test("guide budgets include final tool messages, JSON overhead, and Unicode byte
     const body = { ...longest, messages: [{ role: "user" as const, content: "x".repeat(n) }] };
     try { buildMessages(h.server.ctx, body, null, null); longest = body; } catch { break; }
   }
-  let streams = 0;
+  let streams = 0, plans = 0, finalBytes = 0, final: { role: string; content: string }[] = [];
   h.server.ctx.gemma.chat = async (o) => {
+    plans++;
     assert.ok(Buffer.byteLength(JSON.stringify(o.messages)) + Buffer.byteLength(JSON.stringify(TOOL_SCHEMAS)) <= MODEL_INPUT_BUDGET);
-    return { role: "assistant", content: "", tool_calls: Array.from({ length: 3 }, () => ({ function: { name: "get_star", arguments: { hyg_id: 32263 } } })) };
+    // A worst-case planner turn: long free text, three tool calls, oversized/unknown arguments.
+    return { role: "assistant", content: "thinking ".repeat(300), tool_calls: [
+      { function: { name: "get_star_content", arguments: { hyg_id: 32263, junk: "j".repeat(2000) } } },
+      { function: { name: "calculate_travel_time", arguments: JSON.stringify({ hyg_id: 32263, speed_km_s: 17 }) } },
+      { function: { name: "n".repeat(500), arguments: { hyg_id: 32263 } } },
+    ] };
   };
   h.server.ctx.gemma.stream = async function* (o) {
     streams++;
-    assert.ok(Buffer.byteLength(JSON.stringify(o.messages)) <= MODEL_INPUT_BUDGET);
+    finalBytes = Buffer.byteLength(JSON.stringify(o.messages));
+    final = o.messages;
     yield "OK";
   };
+  // The longest message that passes the precheck always produces a final request within budget.
   const response = await h.server.app.inject({ method: "POST", url: "/api/agent/chat", headers: a.auth, payload: longest });
-  assert.equal(response.statusCode, 400);
-  assert.equal(response.json().error.code, "context_too_large");
-  assert.equal(streams, 0); // reject before hijacking SSE or dispatching an oversized call
+  assert.equal(response.statusCode, 200, response.body);
+  assert.match(response.body, /event: done/);
+  assert.equal(streams, 1);
+  assert.deepEqual(final.map((m) => m.role), ["system", "user", "assistant", "tool", "tool", "tool"]);
+  assert.equal(final[1].content, longest.messages[0].content); // the current question is never trimmed
+  assert.ok(finalBytes > 0 && finalBytes <= MODEL_INPUT_BUDGET, String(finalBytes));
+  // One byte more is rejected before any model call.
+  const tooLong = { ...longest, messages: [{ role: "user" as const, content: longest.messages[0].content + "x" }] };
+  const rejected = await h.server.app.inject({ method: "POST", url: "/api/agent/chat", headers: a.auth, payload: tooLong });
+  assert.equal(rejected.statusCode, 400);
+  assert.equal(rejected.json().error.code, "context_too_large");
+  assert.equal(plans, 1);
+  assert.equal(streams, 1);
   const valid = await h.server.app.inject({ method: "POST", url: "/api/agent/chat", headers: a.auth,
     payload: { mode: "explore", messages: [{ role: "user", content: "Tell me about Sirius" }] } });
   assert.equal(valid.statusCode, 200);

@@ -5,7 +5,7 @@ import { AppError, badRequest } from "../lib/errors.js";
 import type { Ctx } from "../context.js";
 import type { Viewer } from "../auth/session.js";
 import { ModelError } from "../models/http.js";
-import type { OllamaMessage } from "../models/gemma.js";
+import type { OllamaMessage, OllamaToolCall } from "../models/gemma.js";
 import { MAX_TOOL_CALLS, TOOL_RESULT_BUDGET, TOOL_SCHEMAS, ToolError, runTool, starFacts, type Scope } from "./tools.js";
 
 /** Context budget for serialized model messages + tool schemas (spec §11). */
@@ -72,31 +72,82 @@ export function buildMessages(ctx: Ctx, body: ChatRequest, scope: Scope, selecte
   if (selected !== null) context += `\nSelected star facts: ${JSON.stringify(starFacts(ctx, selected))}`;
   const system: OllamaMessage = { role: "system", content: `${SYSTEM}\n${context}` };
   const history: OllamaMessage[] = body.messages.map((m) => ({ role: m.role, content: m.content }));
+  // Fail before any model call if even the smallest possible final (post-tool) request could not fit.
+  if (bytes([system, history[history.length - 1], ...WORST_FINAL_SUFFIX]) > MODEL_INPUT_BUDGET) throw tooLarge();
   return fitMessages([system, ...history], [], [...TOOL_SCHEMAS]);
 }
 
-/** Preserve instructions/current user/facts and tool protocol; trim oldest history only. */
-export function fitMessages(base: OllamaMessage[], suffix: OllamaMessage[] = [], tools?: unknown[]): OllamaMessage[] {
+const tooLarge = () => badRequest("The message is too long for the guide.", "context_too_large");
+
+/** Trim oldest history only (instructions/facts and the current user message stay); null if it cannot fit. */
+function tryFit(base: OllamaMessage[], suffix: OllamaMessage[], tools?: unknown[]): OllamaMessage[] | null {
   const [system, ...history] = base;
   const size = () => bytes([system, ...history, ...suffix]) + (tools ? bytes(tools) : 0);
   while (history.length > 1 && size() > MODEL_INPUT_BUDGET) history.shift();
-  if (size() > MODEL_INPUT_BUDGET) throw badRequest("The message is too long for the guide.", "context_too_large");
-  return [system, ...history, ...suffix];
+  return size() > MODEL_INPUT_BUDGET ? null : [system, ...history, ...suffix];
 }
 
-/** Include JSON escaping/wrapper overhead, and never split a Unicode code point. */
-export function boundedToolResults(results: object[]): string[] {
-  const room = Math.floor(TOOL_RESULT_BUDGET / Math.max(results.length, 1));
+export function fitMessages(base: OllamaMessage[], suffix: OllamaMessage[] = [], tools?: unknown[]): OllamaMessage[] {
+  const fitted = tryFit(base, suffix, tools);
+  if (!fitted) throw tooLarge();
+  return fitted;
+}
+
+/**
+ * Bound tool results by their size as embedded in the request (JSON string escaping included), split evenly,
+ * never splitting a Unicode code point.
+ */
+export function boundedToolResults(results: object[], budget = TOOL_RESULT_BUDGET): string[] {
+  const room = Math.floor(budget / Math.max(results.length, 1));
   return results.map((r) => {
     const text = JSON.stringify(r);
-    if (Buffer.byteLength(text) <= room) return text;
+    if (bytes(text) <= room) return text;
     let prefix = "";
     for (const cp of text) {
-      if (bytes({ truncated: prefix + cp }) > room) break;
+      if (bytes(JSON.stringify({ truncated: prefix + cp })) > room) break;
       prefix += cp;
     }
     return JSON.stringify({ truncated: prefix });
   });
+}
+
+/** Smallest total tool-result budget we will shrink to so a final request fits. */
+export const MIN_TOOL_RESULT_BUDGET = 240;
+const TOOL_ARGS: Record<string, readonly string[]> = Object.fromEntries(
+  TOOL_SCHEMAS.map((t) => [t.function.name, Object.keys(t.function.parameters.properties)]));
+
+/** Echo of the planner turn with bounded size: no free text, known tool names, numeric known arguments only. */
+function finalSuffix(calls: OllamaToolCall[], texts: string[]): OllamaMessage[] {
+  const clean = calls.map((c) => {
+    const name = TOOL_ARGS[c.function?.name] ? c.function.name : "unknown";
+    const raw = c.function?.arguments;
+    const args = (typeof raw === "string" ? (() => { try { return JSON.parse(raw); } catch { return {}; } })() : raw) ?? {};
+    const kept = Object.fromEntries((TOOL_ARGS[name] ?? []).flatMap((k) =>
+      typeof args[k] === "number" && Number.isFinite(args[k]) ? [[k, args[k]]] : []));
+    return { function: { name, arguments: kept } };
+  });
+  return [
+    { role: "assistant", content: "", tool_calls: clean },
+    ...clean.map((c, i) => ({ role: "tool" as const, tool_name: c.function.name, content: texts[i] })),
+  ];
+}
+
+const WORST_FINAL_SUFFIX = (() => {
+  const longest = Object.keys(TOOL_ARGS).sort((a, b) => b.length - a.length)[0];
+  const widest = -2.2250738585072014e-308; // longest JSON number form
+  const args = Object.fromEntries(Object.values(TOOL_ARGS).flat().map((k) => [k, widest]));
+  const room = Math.floor(MIN_TOOL_RESULT_BUDGET / MAX_TOOL_CALLS);
+  return finalSuffix(Array.from({ length: MAX_TOOL_CALLS }, () => ({ function: { name: longest, arguments: args } })),
+    Array.from({ length: MAX_TOOL_CALLS }, () => "x".repeat(room - 2)));
+})();
+
+/** The post-tool request: trim history first, then shrink tool results toward MIN_TOOL_RESULT_BUDGET. */
+export function fitFinal(messages: OllamaMessage[], calls: OllamaToolCall[], results: object[]): OllamaMessage[] {
+  for (let budget = TOOL_RESULT_BUDGET; budget > MIN_TOOL_RESULT_BUDGET; budget -= 80) {
+    const fitted = tryFit(messages, finalSuffix(calls, boundedToolResults(results, budget)));
+    if (fitted) return fitted;
+  }
+  return fitMessages(messages, finalSuffix(calls, boundedToolResults(results, MIN_TOOL_RESULT_BUDGET)));
 }
 
 const modelErr = (e: unknown) =>
@@ -133,11 +184,7 @@ export async function handleChat(ctx: Ctx, queue: GuideQueue, req: FastifyReques
           try { return runTool(ctx, scope, c.function?.name, c.function?.arguments); }
           catch (e) { return { error: e instanceof ToolError ? e.message : "tool failed" }; }
         });
-        const texts = boundedToolResults(results);
-        finalMessages = fitMessages(messages, [
-          { role: "assistant", content: plan.content ?? "", tool_calls: calls },
-          ...calls.map((c, i) => ({ role: "tool" as const, tool_name: c.function?.name, content: texts[i] })),
-        ]);
+        finalMessages = fitFinal(messages, calls, results);
       }
     } catch (e) {
       throw modelErr(e);

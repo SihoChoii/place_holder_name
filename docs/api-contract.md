@@ -235,6 +235,9 @@ Public `Tag` objects omit `my_reactions` and `processing_state`; image URLs use 
 - `mode`: `local` (only stars in `scope_hyg_ids`, the stars currently in view, ≤ 200) or `explore` (whole catalog).
 - `selected_hyg_id` optional/null; in local mode it must be in `scope_hyg_ids`.
 - No system messages, model names or URLs are accepted.
+- `400 context_too_large` is decided before any model call: the current message plus instructions must leave room
+  for the tool round (about 1,450 characters in explore mode with no selected star). Older history is trimmed
+  silently; tool results are shrunk if needed, so a request that starts is never rejected for size afterwards.
 
 Errors before streaming are normal JSON errors (`400`, `401`, `429`, `503 guide_busy` when 1 active + 2 waiting,
 `503 guide_unavailable`, `504 guide_timeout` when the model or the 60 s deadline times out before streaming).
