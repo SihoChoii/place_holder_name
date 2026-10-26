@@ -54,6 +54,8 @@ CLEF_API_STYLE=openai
 CLEF_API_KEY=<set locally>
 ```
 
+DeepSeek's hosted API also works as the guide in openai style: `GUIDE_BASE_URL=https://api.deepseek.com`, `GUIDE_MODEL=deepseek-flash`, `GUIDE_API_KEY=<set locally>`, `GUIDE_THINK=false` (also sends `thinking: {type: "disabled"}`, which DeepSeek needs).
+
 Operator checklist on each model laptop:
 
 1. Start Unsloth bound to all interfaces so other devices can reach it:

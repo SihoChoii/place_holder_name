@@ -38,6 +38,7 @@ test("openai client: Bearer key, enable_thinking off, max_tokens, reasoning igno
   assert.equal(call.auth, `Bearer ${KEY}`);
   assert.equal(call.body.max_tokens, 8);
   assert.deepEqual(call.body.chat_template_kwargs, { enable_thinking: false });
+  assert.deepEqual(call.body.thinking, { type: "disabled" });
   for (const k of ["options", "think", "keep_alive"]) assert.ok(!(k in call.body), k);
   let out = "";
   for await (const d of g.stream({ messages: [{ role: "user", content: "hi" }], numPredict: 16 })) out += d;
@@ -139,4 +140,26 @@ test("openai style readiness: /v1/models identity, loaded flag, no false drift, 
   assert.ok(sameIdentity("openai", { api_style: "openai", model: "m" }, { api_style: "openai", model: "m", digest: "d" }));
   assert.ok(!sameIdentity("openai", { api_style: "openai", model: "m" }, { api_style: "openai", model: "n" }));
   assert.ok(!sameIdentity("openai", { ollama_version: "1", model: "m", digest: "d" }, { api_style: "openai", model: "m" }));
+});
+
+test("openai client: GUIDE_THINK=true sends no thinking overrides", async (t) => {
+  const fake = await startFakeOllama();
+  t.after(() => fake.close());
+  const g = new GemmaClient(fake.url, "fake", 5000, true, { style: "openai" });
+  await g.chat({ messages: [{ role: "user", content: "hi" }], numPredict: 8 });
+  for (const k of ["thinking", "chat_template_kwargs"]) assert.ok(!(k in fake.calls[0].body), k);
+});
+
+test("openai client: aborting mid-stream stops reading even when many lines arrive in one chunk", async (t) => {
+  const fake = await startFakeOllama();
+  t.after(() => fake.close());
+  const g = new GemmaClient(fake.url, "fake", 5000, false, { style: "openai" });
+  const ac = new AbortController();
+  let n = 0;
+  await assert.rejects(async () => {
+    for await (const _ of g.stream({ messages: [{ role: "user", content: "hi" }], numPredict: 16, signal: ac.signal })) {
+      if (++n === 1) ac.abort();
+    }
+  }, (e: { kind?: string }) => e.kind === "aborted");
+  assert.equal(n, 1);
 });
