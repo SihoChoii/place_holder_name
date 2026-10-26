@@ -55,9 +55,30 @@ For the connected phone, substitute `-destination 'id=<device-UDID>'`, use the M
 
 Run `StargazeUITests` on the phone while unlocked with the rear camera aimed above the horizon. It verifies sensor readiness, visible stars, and measured Canvas rendering at least 30 fps, and saves a screenshot. It does not establish astronomical alignment accuracy against a real known star.
 
-## Verification and remaining deployment gate
+## Local backend on this Mac
 
-See [iOS execution record](../../docs/ios-execution-record.md) for measured results and limitations. Simulator and connected-iPhone API tests passed. Live Gemma/Clef responses remain unverified until a deployed API/model setup is supplied. The app never changes pending content to approved locally.
+The supplied backend is `http://localhost:4000` on the Mac. For the iPhone use **`http://imu-mac.local:4000`** in Account → Server → Use server. The final device configuration check was deferred, so confirm this setting manually. Keep the Mac and backend running on the same local network and allow the app's local-network prompt.
+
+The backend currently listens on IPv4 loopback only. With the user's approval, this temporary bridge exposes it to local IPv6 clients without changing API authentication:
+
+```sh
+node apps/ios/scripts/local-backend-bridge.mjs
+```
+
+The bridge binds IPv6 port 4000 and forwards to `127.0.0.1:4000`. It accepts loopback, link-local and unique-local IPv6 sources, streams responses, and does not log request bodies. Other devices on that local network can reach the existing API. Stop it with Ctrl-C after development. `IOS_BRIDGE_PORT` and `IOS_UPSTREAM_PORT` optionally override the ports. This is a local development helper, not a deployed server.
+
+## Optional device UI checks
+
+Select individual methods with `-only-testing:StargazeUITests/DeviceSkyTests/<method>` and the physical destination/signing settings above:
+
+- `testConfigureBackendAndReadPublicStar`: set `TEST_RUNNER_RUN_IOS_BACKEND_SETUP=1` and `TEST_RUNNER_TEST_API_ORIGIN`. Saves the origin locally, reads public Sirius ownership, then checks persistence after relaunch. It does not create backend records.
+- `testPhysicalCameraCapturePreview`: set `TEST_RUNNER_RUN_IOS_CAMERA_TEST=1`, `TEST_RUNNER_TEST_API_ORIGIN`, `TEST_RUNNER_CAMERA_TEST_EMAIL`, `TEST_RUNNER_CAMERA_TEST_STAR_ID`, and `TEST_RUNNER_CAMERA_TEST_STAR_NAME`. Use only a disposable backend with a pre-created account whose password is `camera-test-password` and an unclaimed star. This test creates a permanent test claim, captures a photo into the composer preview, and discards it without uploading. Do not run claim integration tests concurrently against the same fixture database.
+
+Keep the phone unlocked for these checks. The capture check remains unverified: it was stopped at the user's request while Xcode waited for unlock.
+
+## Verification and deferred checks
+
+See [iOS execution record](../../docs/ios-execution-record.md) for measured results and limitations. Simulator and connected-iPhone API tests passed. The supplied backend has healthy database/media checks; its guide is unreachable and moderation is disabled. The user deferred those integrations and outdoor star alignment. Full VoiceOver, physical photo capture, and final phone-to-supplied-backend configuration remain unverified. The app never changes pending content to approved locally.
 
 The sky uses J2000 coordinates without precession, proper motion, or atmospheric refraction correction. Compass calibration affects pointing accuracy. Daylight shows predicted positions and says that stars may not be visible to the eye.
 

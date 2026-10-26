@@ -21,11 +21,13 @@ struct PrimaryButtonStyle: ButtonStyle {
       maxWidth: .infinity, minHeight: 48
     )
     .foregroundStyle(.black).background(.white.opacity(configuration.isPressed ? 0.7 : 1))
+    .contentShape(Rectangle())
   }
 }
 struct SecondaryButtonStyle: ButtonStyle {
   func makeBody(configuration: Configuration) -> some View {
     configuration.label.frame(minHeight: 44).padding(.horizontal, 12).foregroundStyle(.white)
+      .contentShape(Rectangle())
       .background(configuration.isPressed ? AppTheme.overlay : .clear).overlay(
         Rectangle().stroke(Color(white: 0.45)))
   }

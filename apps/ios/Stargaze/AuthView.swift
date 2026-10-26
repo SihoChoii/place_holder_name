@@ -3,6 +3,8 @@ import SwiftUI
 struct AuthView: View {
   @EnvironmentObject var session: SessionStore
   @Environment(\.dismiss) private var dismiss
+  private enum Field { case name, email, password }
+  @FocusState private var focusedField: Field?
   @State private var signup = false
   @State private var showPassword = false
   @State private var email = ""
@@ -10,6 +12,12 @@ struct AuthView: View {
   @State private var name = ""
   @State private var busy = false
   @State private var error: String?
+  private var canSubmit: Bool {
+    !email.isEmpty && (12...128).contains(password.unicodeScalars.count)
+      && (!signup
+        || (!name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+          && name.unicodeScalars.count <= 50))
+  }
   var body: some View {
     NavigationStack {
       ScrollView {
@@ -24,6 +32,8 @@ struct AuthView: View {
             VStack(alignment: .leading) {
               Text("Display name")
               TextField("Your name", text: $name).textContentType(.nickname).appField()
+                .focused($focusedField, equals: .name).submitLabel(.next)
+                .onSubmit { focusedField = .email }
             }
           }
           VStack(alignment: .leading) {
@@ -31,6 +41,8 @@ struct AuthView: View {
             TextField("you@example.com", text: $email).textContentType(.emailAddress).keyboardType(
               .emailAddress
             ).textInputAutocapitalization(.never).autocorrectionDisabled().appField()
+              .focused($focusedField, equals: .email).submitLabel(.next)
+              .onSubmit { focusedField = .password }
           }
           VStack(alignment: .leading) {
             Text("Password")
@@ -45,6 +57,8 @@ struct AuthView: View {
                     signup ? .newPassword : .password)
                 }
               }.accessibilityIdentifier("auth.password")
+                .focused($focusedField, equals: .password).submitLabel(.go)
+                .onSubmit { Task { await submit() } }
               Button {
                 showPassword.toggle()
               } label: {
@@ -58,12 +72,7 @@ struct AuthView: View {
           Button(busy ? "Connecting…" : (signup ? "Create account" : "Sign in")) {
             Task { await submit() }
           }
-          .buttonStyle(PrimaryButtonStyle()).disabled(
-            busy || email.isEmpty || password.count < 12 || password.count > 128
-              || (signup
-                && (name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                  || name.unicodeScalars.count > 50))
-          )
+          .buttonStyle(PrimaryButtonStyle()).disabled(busy || !canSubmit)
           if session.origin.isEmpty {
             StatusMessage(message: "Set your server address in Account before signing in.")
           }
@@ -71,10 +80,18 @@ struct AuthView: View {
       }.scrollDismissesKeyboard(.interactively).appScreen().navigationTitle(
         signup ? "Create account" : "Sign in"
       ).navigationBarTitleDisplayMode(.inline)
-        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } } }
+        .toolbar {
+          ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
+          ToolbarItemGroup(placement: .keyboard) {
+            Spacer()
+            Button("Done") { focusedField = nil }.accessibilityIdentifier("auth.dismissKeyboard")
+          }
+        }
     }
   }
   private func submit() async {
+    guard !busy, canSubmit else { return }
+    focusedField = nil
     busy = true
     error = nil
     defer { busy = false }

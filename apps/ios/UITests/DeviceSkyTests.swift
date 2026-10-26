@@ -1,6 +1,105 @@
 import XCTest
 
 final class DeviceSkyTests: XCTestCase {
+  func testConfigureBackendAndReadPublicStar() throws {
+    guard ProcessInfo.processInfo.environment["RUN_IOS_BACKEND_SETUP"] == "1",
+      let origin = ProcessInfo.processInfo.environment["TEST_API_ORIGIN"]
+    else {
+      throw XCTSkip("Opt in with the user-approved backend origin.")
+    }
+    continueAfterFailure = false
+    let app = XCUIApplication()
+    app.launchEnvironment["STARTAGGER_API_ORIGIN"] = origin
+    app.launch()
+    let account = app.buttons["Account and server"]
+    XCTAssertTrue(account.waitForExistence(timeout: 15))
+    account.tap()
+    let useServer = app.buttons["Use server"]
+    XCTAssertTrue(useServer.waitForExistence(timeout: 15))
+    useServer.tap()
+    app.buttons["Done"].tap()
+    app.buttons["Explore"].tap()
+    let search = app.textFields["Search a name, HYG ID, or post"]
+    XCTAssertTrue(search.waitForExistence(timeout: 10))
+    search.tap()
+    search.typeText("32263")
+    let sirius = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Sirius")).firstMatch
+    XCTAssertTrue(sirius.waitForExistence(timeout: 10))
+    sirius.tap()
+    let ownership = app.staticTexts.matching(
+      NSPredicate(format: "label == %@ OR label BEGINSWITH %@", "Unclaimed", "Claimed by")
+    ).firstMatch
+    XCTAssertTrue(ownership.waitForExistence(timeout: 20), app.debugDescription)
+    print("DEVICE_BACKEND_EVIDENCE: public Sirius ownership loaded from \(origin)")
+    app.terminate()
+    app.launchEnvironment.removeValue(forKey: "STARTAGGER_API_ORIGIN")
+    app.launch()
+    XCTAssertTrue(account.waitForExistence(timeout: 15))
+    account.tap()
+    let server = app.textFields["http://your-mac.local:4000"]
+    XCTAssertTrue(server.waitForExistence(timeout: 10))
+    XCTAssertEqual(server.value as? String, origin)
+    app.buttons["Done"].tap()
+  }
+  func testPhysicalCameraCapturePreview() throws {
+    #if targetEnvironment(simulator)
+      throw XCTSkip("Camera capture acceptance requires a physical iPhone.")
+    #else
+      continueAfterFailure = false
+      let environment = ProcessInfo.processInfo.environment
+      guard environment["RUN_IOS_CAMERA_TEST"] == "1",
+        let origin = environment["TEST_API_ORIGIN"],
+        let starID = environment["CAMERA_TEST_STAR_ID"],
+        let starName = environment["CAMERA_TEST_STAR_NAME"],
+        let testEmail = environment["CAMERA_TEST_EMAIL"]
+      else {
+        throw XCTSkip("Opt in with a disposable API and an unclaimed test star.")
+      }
+      let app = XCUIApplication()
+      app.launchEnvironment["STARTAGGER_API_ORIGIN"] = origin
+      app.launch()
+      func tap(_ element: XCUIElement) {
+        XCTAssertTrue(element.waitForExistence(timeout: 15), element.debugDescription)
+        for _ in 0..<3 {
+          if element.isHittable { break }
+          app.swipeUp()
+        }
+        element.press(forDuration: 0.15)
+      }
+      tap(app.buttons["Account and server"])
+      if app.buttons["Log out"].exists { tap(app.buttons["Log out"]) }
+      tap(app.buttons["Sign in or create account"])
+      tap(app.buttons["Show password"])
+      let email = app.textFields["you@example.com"]
+      tap(email)
+      email.typeText(testEmail)
+      let password = app.textFields["auth.password"]
+      tap(password)
+      password.typeText("camera-test-password\n")
+      XCTAssertTrue(app.buttons["Log out"].waitForExistence(timeout: 15), app.debugDescription)
+      tap(app.buttons["Done"])
+      tap(app.buttons["Explore"])
+      let search = app.textFields["Search a name, HYG ID, or post"]
+      tap(search)
+      search.typeText(starID)
+      tap(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", starName)).firstMatch)
+      tap(app.buttons["Claim this star"])
+      XCTAssertTrue(
+        app.staticTexts["Claimed by you"].waitForExistence(timeout: 15), app.debugDescription)
+      tap(app.buttons["Add post"].firstMatch)
+      tap(app.buttons["Take photo"])
+      let shutter = app.buttons.matching(
+        NSPredicate(format: "label IN %@", ["Take Picture", "Take Photo", "PhotoCapture"])
+      ).firstMatch
+      XCTAssertTrue(shutter.waitForExistence(timeout: 15), app.debugDescription)
+      tap(shutter)
+      tap(app.buttons["Use Photo"])
+      XCTAssertTrue(
+        app.buttons["Remove photo 1"].waitForExistence(timeout: 15), app.debugDescription)
+      print("DEVICE_CAMERA_EVIDENCE: captured photo returned to composer preview; not uploaded")
+      tap(app.buttons["Close"])
+    #endif
+  }
   func testPhysicalCameraLocationOrientationAndRendering() throws {
     #if targetEnvironment(simulator)
       throw XCTSkip("This acceptance check requires physical camera and motion sensors.")
