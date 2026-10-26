@@ -39,9 +39,11 @@ function isPrivateIp(ip: string): boolean {
   // Forms embedding an IPv4 address go through the IPv4 rules: IPv4-compatible ::a.b.c.d (also :: and ::1),
   // IPv4-mapped ::ffff:a.b.c.d, NAT64 64:ff9b::a.b.c.d, and 6to4 2002:aabb:ccdd::.
   if (zero(0, 5) && (g[5] === 0 || g[5] === 0xffff)) return v4(g[6], g[7]);
+  if (zero(0, 4) && g[4] === 0xffff && g[5] === 0) return v4(g[6], g[7]); // IPv4-translated ::ffff:0:a.b.c.d
   if (g[0] === 0x64 && g[1] === 0xff9b) return g[2] === 1 || (zero(2, 6) ? v4(g[6], g[7]) : true); // 64:ff9b:1::/48 is local-use
   if (g[0] === 0x2002) return v4(g[1], g[2]);
-  return (g[0] & 0xfe00) === 0xfc00 || (g[0] & 0xffc0) === 0xfe80 || (g[0] & 0xff00) === 0xff00; // ULA, link-local, multicast
+  // ULA, link-local, deprecated site-local, multicast
+  return (g[0] & 0xfe00) === 0xfc00 || (g[0] & 0xffc0) === 0xfe80 || (g[0] & 0xffc0) === 0xfec0 || (g[0] & 0xff00) === 0xff00;
 }
 
 /** Expand a valid IPv6 literal (optionally with a dotted IPv4 tail) into eight 16-bit groups. */

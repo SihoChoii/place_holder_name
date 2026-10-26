@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { runTool } from "../src/guide/tools.js";
+import { validateLink } from "../src/media/links.js";
 import { claimedStars } from "../src/services/claimed.js";
 import { harness, signup } from "./helpers.js";
 
@@ -17,6 +18,14 @@ test("travel time: a speed so small the duration overflows is 400 (REST) and a t
   const ok = await h.server.app.inject({ url: "/api/stars/32263/travel-time?speed_km_s=1e308", headers: a.auth });
   assert.equal(ok.statusCode, 200);
   assert.ok(Number.isFinite(ok.json().travel_years));
+});
+
+test("link validation also rejects IPv4-translated (::ffff:0:a.b.c.d) private addresses and site-local fec0::/10", () => {
+  for (const u of ["http://[::ffff:0:10.0.0.1]/", "http://[::ffff:0:127.0.0.1]/", "http://[fec0::1]/", "http://[feff::1]/"]) {
+    assert.throws(() => validateLink(u), /private or loopback/, u);
+  }
+  assert.equal(validateLink("http://[::ffff:0:8.8.8.8]/"), "http://[::ffff:0:808:808]/");
+  assert.equal(validateLink("http://[2606:4700::1111]/"), "http://[2606:4700::1111]/");
 });
 
 test("public claimed scales linearly: 8,000 claims with posts build in well under a second", async (t) => {
