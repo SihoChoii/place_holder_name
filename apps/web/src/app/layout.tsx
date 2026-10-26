@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import "@fontsource-variable/inter";
 import "./globals.css";
+import { SessionProvider } from "@/features/auth/session";
+import { SiteHeader } from "@/features/site-header";
+import { ObserverProvider } from "@/sky/observer";
 
 export const metadata: Metadata = {
   title: "Stargaze",
@@ -10,7 +13,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body><SessionProvider><ObserverProvider><SiteHeader />{children}</ObserverProvider></SessionProvider></body>
     </html>
   );
 }

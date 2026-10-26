@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3000",
-    "build": "next build",
+    "dev": "node scripts/catalog.mjs && next dev --port 3000",
+    "build": "node scripts/catalog.mjs && next build",
     "typecheck": "next typegen && tsc --noEmit",
     "start": "pnpm -w start",
     "lint": "next lint"

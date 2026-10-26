@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { BookmarkCheckIcon, BookmarkIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { starHref } from "@/lib/api/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,6 +33,8 @@ export function StarDetail({ star, saved, note, onSave, onNote, inSheet = false 
         <div><dt>Distance</dt><dd>{star.distanceLightYears === null ? "Not available" : `${star.distanceLightYears.toLocaleString("en-US", { maximumFractionDigits: 2 })} ly`}</dd></div>
       </dl>
       <div className="detail-actions">
+        <Link className={buttonVariants({variant:"outline"})} href={starHref(star.id)}>Open public star page</Link>
+        <Link className={buttonVariants({variant:"outline"})} href={`/?star=${star.id}`}>Find in sky</Link>
         <Button className="w-full" onClick={onSave} aria-pressed={saved}>{saved ? <BookmarkCheckIcon data-icon="inline-start" aria-hidden="true" /> : <BookmarkIcon data-icon="inline-start" aria-hidden="true" />}{saved ? "Saved" : "Save star"}</Button>
         <Dialog open={noteOpen} onOpenChange={setOpen}>
           <DialogTrigger render={<Button variant="outline" className="w-full" />}>{note ? "Edit note" : "Add note"}</DialogTrigger>
