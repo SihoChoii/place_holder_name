@@ -18,14 +18,65 @@ targets:
     platform: iOS
     sources:
       - path: Stargaze
+      - path: ../../packages/shared/swift/StarTaggerAPI.swift
+      - path: ../../catalog/stars.json
+        buildPhase: resources
+      - path: ../../catalog/constellations.json
+        buildPhase: resources
+      - path: ../../catalog/VERSION.json
+        buildPhase: resources
+    info:
+      path: Stargaze/Info.plist
+      properties:
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        UIAppFonts:
+          - Inter.ttf
     settings:
       base:
+        TARGETED_DEVICE_FAMILY: "1"
+        INFOPLIST_KEY_UIRequiresFullScreen: true
         PRODUCT_NAME: Stargaze
+        INFOPLIST_KEY_CFBundleDisplayName: StarTagger
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: "StarTagger connects to your local server for accounts, star claims, and posts."
         GENERATE_INFOPLIST_FILE: true
         CURRENT_PROJECT_VERSION: 1
         MARKETING_VERSION: 0.0.0
         INFOPLIST_KEY_UILaunchScreen_Generation: true
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
-        INFOPLIST_KEY_NSCameraUsageDescription: "Stargaze uses the camera to overlay star positions on your live sky view"
-        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "Stargaze uses your location to accurately display stars visible from your position"
+        INFOPLIST_KEY_NSCameraUsageDescription: "StarTagger uses the camera to overlay star positions on your live sky view"
+        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "StarTagger uses your location to accurately display stars visible from your position"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+
+  StargazeTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: Stargaze
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.stargaze.tests
+        GENERATE_INFOPLIST_FILE: true
+  StargazeUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests
+    dependencies:
+      - target: Stargaze
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.stargaze.uitests
+        GENERATE_INFOPLIST_FILE: true
+        TEST_TARGET_NAME: Stargaze
+schemes:
+  Stargaze:
+    build:
+      targets:
+        Stargaze: all
+    test:
+      targets:
+        - StargazeTests
+        - StargazeUITests
