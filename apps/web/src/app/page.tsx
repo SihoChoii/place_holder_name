@@ -1,5 +1,6 @@
-import { CatalogApp } from "@/components/catalog/catalog-app";
+import { Suspense } from "react";
+import { SkyApp } from "@/sky/sky-app";
 
 export default function HomePage() {
-  return <CatalogApp />;
+  return <Suspense fallback={<p role="status">Opening the live sky…</p>}><SkyApp /></Suspense>;
 }

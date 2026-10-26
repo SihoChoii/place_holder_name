@@ -41,17 +41,30 @@ test("every shared fixture validates against its schema", () => {
   }
 });
 
-test("built SPA is served on the same origin with index.html fallback; /api 404s stay JSON", async (t) => {
+test("static route shells and star aliases work; missing pages/assets are real 404s", async (t) => {
   const dir = mkdtempSync(join(tmpdir(), "stargaze-web-"));
   writeFileSync(join(dir, "index.html"), "<!doctype html><title>Star Tagger</title>");
   writeFileSync(join(dir, "app.js"), "console.log(1)");
+  writeFileSync(join(dir, "star.html"), "<!doctype html><title>Star shell</title>");
+  writeFileSync(join(dir, "catalog.html"), "<!doctype html><title>Catalog shell</title>");
+  writeFileSync(join(dir, "404.html"), "<!doctype html><title>Page not found</title>");
   const config = loadConfig({ JWT_SECRET: "x".repeat(40), GUIDE_BASE_URL: "http://127.0.0.1:9", CLEF_BASE_URL: "http://127.0.0.1:9",
     DB_PATH: join(dir, "db.sqlite"), MEDIA_DIR: join(dir, "media") }, { dotenv: false });
   const server = await buildApp(config, { logger: false, webDist: dir });
   t.after(async () => { await server.close(); rmSync(dir, { recursive: true, force: true }); });
   const app = server.app;
   assert.match((await app.inject({ url: "/" })).body, /Star Tagger/);
-  assert.match((await app.inject({ url: "/stars/32263" })).body, /Star Tagger/);
+  const star = await app.inject({ url: "/star?hyg_id=32263" });
+  assert.equal(star.statusCode, 200);
+  assert.match(star.body, /Star shell/);
+  assert.match((await app.inject({ url: "/catalog" })).body, /Catalog shell/);
+  const alias = await app.inject({ url: "/star/32263" });
+  assert.equal(alias.statusCode, 302);
+  assert.equal(alias.headers.location, "/star?hyg_id=32263");
+  assert.equal((await app.inject({ url: "/star/999999999" })).statusCode, 404);
+  assert.equal((await app.inject({ url: "/stars/32263" })).statusCode, 404);
+  assert.equal((await app.inject({ url: "/missing.js" })).statusCode, 404);
+  assert.equal((await app.inject({ url: "/catalog/missing.json" })).statusCode, 404);
   assert.equal((await app.inject({ url: "/app.js" })).body, "console.log(1)");
   const api404 = await app.inject({ url: "/api/nope" });
   assert.equal(api404.statusCode, 404);

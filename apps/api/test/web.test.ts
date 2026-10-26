@@ -25,6 +25,19 @@ test("actual Next.js export loads with its assets and cookie API on the same HTT
     assert.match(asset.headers.get("content-type")!, /javascript/);
     await asset.arrayBuffer();
   }
+  for (const path of ["/star?hyg_id=32263", "/catalog", "/credits", "/login"]) {
+    const route = await fetch(new URL(path, origin));
+    assert.equal(route.status, 200, path);
+    assert.match(route.headers.get("content-type")!, /text\/html/);
+    assert.match(await route.text(), /Stargaze/);
+  }
+  const alias = await fetch(`${origin}/star/32263`, { redirect: "manual" });
+  assert.equal(alias.status, 302);
+  assert.equal(alias.headers.get("location"), "/star?hyg_id=32263");
+  await alias.arrayBuffer();
+  const missingAsset = await fetch(`${origin}/_next/static/no-such-chunk.js`);
+  assert.equal(missingAsset.status, 404);
+  await missingAsset.arrayBuffer();
   const signup = await fetch(`${origin}/api/auth/signup`, { method: "POST", headers: { origin, "content-type": "application/json" },
     body: JSON.stringify({ email: "web-export@example.com", display_name: "Web Export", password: "correct horse battery" }) });
   assert.equal(signup.status, 201);

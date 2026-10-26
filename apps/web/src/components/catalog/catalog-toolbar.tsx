@@ -12,6 +12,7 @@ const sortItems = [{ value: "brightness", label: "Brightest first" }, { value: "
 export type CatalogSort = "brightness" | "name";
 
 type Props = {
+  constellations?: { abbr: string; name: string }[];
   query: string;
   constellation: string;
   sort: CatalogSort;
@@ -20,7 +21,8 @@ type Props = {
   onSort: (value: CatalogSort) => void;
 };
 
-export function CatalogToolbar({ query, constellation, sort, onQuery, onConstellation, onSort }: Props) {
+export function CatalogToolbar({ query, constellation, sort, onQuery, onConstellation, onSort, constellations }: Props) {
+  const items = constellations ? [{value:"all",label:"All constellations"}, ...constellations.map(c=>({value:c.abbr,label:c.name}))] : constellationItems;
   return (
     <FieldGroup className="catalog-toolbar">
       <Field className="search-field">
@@ -33,10 +35,10 @@ export function CatalogToolbar({ query, constellation, sort, onQuery, onConstell
       </Field>
       <Field>
         <FieldLabel htmlFor="constellation-filter" className="sr-only">Constellation</FieldLabel>
-        <Select items={constellationItems} value={constellation} onValueChange={(value) => onConstellation(value ?? "all")}>
+        <Select items={items} value={constellation} onValueChange={(value) => onConstellation(value ?? "all")}>
           <SelectTrigger id="constellation-filter" className="w-full"><SelectValue /></SelectTrigger>
           <SelectContent alignItemWithTrigger={false}>
-            <SelectGroup>{constellationItems.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}</SelectGroup>
+            <SelectGroup>{items.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}</SelectGroup>
           </SelectContent>
         </Select>
       </Field>

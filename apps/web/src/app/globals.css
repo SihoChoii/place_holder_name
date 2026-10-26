@@ -180,3 +180,142 @@
   .star-table [data-state="selected"] .name-column::before { background: Highlight; }
   .constellation-map { forced-color-adjust: none; }
 }
+
+/* Live explorer: the existing monochrome system, with scientific sky colors only. */
+:root { --sky-day: #16334d; --sky-twilight: #080c16; }
+.explorer-header { min-height: 84px; padding: 16px 32px; display: flex; align-items: center; gap: 56px; border-bottom: 1px solid var(--border); }
+.explorer-header .wordmark { display: inline-flex; align-items: center; gap: 10px; }
+.explorer-header nav { display: flex; align-items: center; gap: 28px; }
+.explorer-header nav a { min-height: 44px; display: flex; align-items: center; border-bottom: 2px solid transparent; color: var(--muted-foreground); }
+.explorer-header nav a[aria-current="page"] { color: var(--foreground); border-color: var(--foreground); }
+.account-controls { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.account-name { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.account-error { display: flex; align-items: center; gap: 12px; padding: 4px 32px; border-bottom: 1px solid var(--border); font-size: 14px; }
+.muted-text { color: var(--muted-foreground); font-size: 14px; line-height: 1.6; }
+.text-link { display: inline-flex; min-height: 44px; align-items: center; text-decoration: underline; text-underline-offset: 4px; }
+.sky-stage { position: relative; height: calc(100svh - 172px); min-height: 600px; max-height: 1080px; isolation: isolate; overflow: hidden; }
+.sky-canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: grab; outline-offset: -4px; }
+.sky-canvas:active { cursor: grabbing; }
+.sky-canvas:focus-visible { outline: 2px solid var(--ring); }
+.sky-heading { position: absolute; top: 28px; left: 32px; pointer-events: none; }
+.sky-heading h1 { font-size: 36px; line-height: 1.15; font-weight: 600; letter-spacing: -.04em; }
+.sky-heading p { display: flex; gap: 12px; align-items: center; margin-top: 12px; font-size: 14px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.live-dot { width: 5px; height: 5px; background: var(--foreground); border-radius: 50%; }
+.sky-place { position: absolute; right: 32px; top: 20px; }
+.place-control { width: 208px; display: flex; align-items: center; flex-direction: column; }
+.earth-globe { width: 176px; height: 176px; }
+.place-control button { max-width: 100%; font-size: 14px; white-space: normal; background: var(--background); }
+.observer-coordinates { margin-top: 8px; font-size: 14px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.place-presets { display: flex; flex-direction: column; gap: 12px; }
+.place-presets button { justify-content: space-between; white-space: normal; text-align: left; gap: 24px; }
+.coordinate-form { border-top: 1px solid var(--border); padding-top: 24px; }
+.sky-loading, .sky-unavailable { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 20px; padding: 24px; text-align: center; background: var(--background); z-index: 3; }
+.sky-loading h1 { font-size: 36px; font-weight: 600; letter-spacing: -.035em; }
+.sky-loading p { color: var(--muted-foreground); }
+.sky-loading a, .sky-unavailable a { text-decoration: underline; padding: 12px; }
+.loading-mark { font-size: 60px; line-height: 1; }
+.sky-controls { position: absolute; bottom: 24px; left: 32px; right: 32px; display: flex; align-items: center; justify-content: space-between; gap: 20px; pointer-events: none; }
+.camera-readout { display: flex; flex-wrap: wrap; gap: 24px; font-size: 14px; font-variant-numeric: tabular-nums; background: var(--background); padding: 10px 12px; }
+.camera-buttons { display: flex; gap: 8px; pointer-events: auto; }
+.camera-buttons button { background: var(--background); }
+.camera-buttons button[aria-pressed="true"] { background: var(--primary); color: var(--primary-foreground); }
+.sky-status { display: flex; justify-content: space-between; gap: 24px; padding: 20px 32px; min-height: 88px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); color: var(--muted-foreground); font-size: 14px; }
+.sky-status p { max-width: 65ch; }
+.sky-notice { position: absolute; left: 32px; top: 130px; max-width: min(430px, calc(100% - 280px)); padding: 16px 56px 16px 20px; background: var(--card); border: 1px solid var(--border); }
+.sky-notice a { display: inline-flex; min-height: 44px; align-items: center; text-decoration: underline; text-underline-offset: 4px; }
+.sky-notice button { position: absolute; top: 4px; right: 4px; }
+.preview-anchor { position: absolute; width: 1px; height: 1px; pointer-events: none; }
+.star-popover { width: 304px; max-width: calc(100vw - 32px); max-height: min(560px, calc(100dvh - 32px)); overflow-y: auto; padding: 20px; background: var(--card); border: 1px solid var(--input); color: var(--foreground); outline: none; }
+.preview-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.preview-heading h2 { font-size: 24px; line-height: 1.25; font-weight: 600; overflow-wrap: anywhere; }
+.preview-heading button { flex-shrink: 0; margin-right: -12px; }
+.preview-body { display: flex; flex-direction: column; gap: 14px; }
+.preview-body .ownership { font-size: 16px; }
+.preview-facts { border-top: 1px solid var(--border); padding-top: 12px; font-size: 14px; }
+.preview-facts > div { display: flex; justify-content: space-between; padding-block: 4px; gap: 12px; }
+.preview-facts dt { color: var(--muted-foreground); }
+.post-excerpt { overflow-wrap: anywhere; }
+.view-catalog { padding-block: 40px 56px; }
+.section-heading { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-bottom: 20px; }
+.section-heading h2, .public-star-layout h2 { font-size: 24px; font-weight: 600; letter-spacing: -.025em; }
+.visible-stars { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); column-gap: 32px; margin-top: 24px; }
+.visible-stars li { display: flex; min-width: 0; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); }
+.visible-stars button { flex-direction: column; align-items: flex-start; gap: 2px; padding: 14px 8px; }
+.visible-stars a { padding: 12px 4px; font-size: 14px; text-decoration: underline; text-underline-offset: 4px; }
+.empty-sky { margin-top: 32px; }
+.detail-main, .credits-main { padding-block: 32px 72px; }
+.detail-main h1, .credits-main h1, .login-main h1 { font-size: clamp(36px,4vw,56px); font-weight: 600; line-height: 1.12; letter-spacing: -.045em; margin-block: 20px 24px; overflow-wrap: anywhere; }
+.public-star-heading { display: flex; justify-content: space-between; gap: 48px; align-items: flex-start; margin-block: 32px 48px; }
+.public-star-heading h1 { margin-top: 12px; }
+.ownership { font-size: 20px; margin-bottom: 8px; }
+.star-page-actions { display: flex; flex-direction: column; gap: 12px; min-width: 180px; }
+.star-page-actions [role="status"] { font-size: 14px; }
+.public-star-layout { display: grid; grid-template-columns: minmax(0,1fr) 360px; gap: 64px; }
+.public-star-layout > aside { border-left: 1px solid var(--border); padding-left: 32px; }
+.public-star-layout > aside h2 { margin-bottom: 20px; }
+.facts-list dd { white-space: normal; text-align: right; max-width: 55%; overflow-wrap: anywhere; }
+.facts-list + p, .planet-names { margin-top: 24px; }
+.inline-error { padding: 20px; border: 1px solid var(--input); margin-block: 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.empty-posts { border-block: 1px solid var(--border); padding-block: 40px; }
+.empty-posts h3 { font-size: 20px; margin-bottom: 12px; }
+.empty-posts p { color: var(--muted-foreground); max-width: 50ch; }
+.public-post { padding-block: 24px; border-top: 1px solid var(--border); }
+.public-post > header { display: flex; justify-content: space-between; gap: 20px; font-size: 14px; }
+.public-post time { color: var(--muted-foreground); font-size: 14px; }
+.post-note { font-size: 18px; margin-block: 20px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.post-media { display: grid; gap: 16px; }
+.image-trigger { height: auto; padding: 0; display: block; width: 100%; }
+.image-trigger img { width: 100%; height: auto; max-height: 560px; object-fit: contain; }
+.full-image { width: 100%; height: auto; max-height: 65dvh; object-fit: contain; }
+.public-link { display: flex; justify-content: space-between; padding: 20px; border: 1px solid var(--input); gap: 16px; overflow-wrap: anywhere; }
+.public-link span { flex-shrink: 0; font-size: 14px; }
+.post-counts { display: flex; flex-wrap: wrap; gap: 20px; font-size: 14px; color: var(--muted-foreground); margin-block: 20px; }
+.public-comments { border-left: 1px solid var(--border); padding-left: 20px; }
+.public-comments li { margin-bottom: 24px; }
+.public-comments strong { font-size: 14px; }
+.public-comments p { overflow-wrap: anywhere; white-space: pre-wrap; margin-block: 6px; }
+.credits-main { max-width: 900px; }
+.credits-intro { margin-bottom: 32px; color: var(--muted-foreground); }
+.source-content { overflow-wrap: anywhere; }
+.login-main { max-width: 480px; padding: 52px 20px 80px; margin-inline: auto; }
+.login-main > p { margin-bottom: 36px; color: var(--muted-foreground); }
+.login-main h1 { font-size: 44px; }
+@media (max-width:1000px) {
+  .explorer-header { gap: 32px; }
+  .public-star-layout { grid-template-columns: minmax(0,1fr) 300px; gap: 32px; }
+  .visible-stars { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .camera-readout { gap: 12px; }
+}
+@media (max-width:740px) {
+  .explorer-header { padding: 12px 20px; gap: 16px; flex-wrap: wrap; }
+  .explorer-header .wordmark { font-size: 23px; }
+  .explorer-header nav { order: 3; width: 100%; gap: 28px; }
+  .account-controls { gap: 8px; }
+  .account-name { max-width: 110px; }
+  .sky-stage { height: calc(100svh - 168px); min-height: 540px; }
+  .sky-heading { left: 20px; top: 24px; }
+  .sky-heading h1 { font-size: 30px; }
+  .sky-heading p { max-width: 170px; flex-wrap: wrap; gap: 6px; }
+  .sky-place { right: 8px; top: 8px; }
+  .place-control { width: 156px; }
+  .earth-globe { width: 116px; height: 116px; }
+  .place-control button { padding-inline: 8px; }
+  .observer-coordinates { font-size: 12px; }
+  .sky-controls { left: 16px; right: 16px; bottom: 16px; flex-direction: column; align-items: stretch; gap: 12px; }
+  .camera-readout { justify-content: space-between; padding: 6px 0; gap: 8px; }
+  .camera-buttons { justify-content: flex-end; }
+  .sky-status { padding: 20px; flex-direction: column; gap: 12px; }
+  .sky-notice { top: 224px; left: 20px; max-width: calc(100% - 40px); }
+  .section-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .public-star-heading { flex-direction: column; gap: 24px; margin-bottom: 32px; }
+  .star-page-actions { flex-direction: row; flex-wrap: wrap; }
+  .public-star-layout { grid-template-columns: minmax(0,1fr); }
+  .public-star-layout > aside { grid-row: 1; padding: 0 0 24px; border-left: 0; }
+  .visible-stars { grid-template-columns: minmax(0,1fr); }
+  .place-presets button { gap: 12px; }
+  .account-error { padding-inline: 20px; }
+}
+@media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+@media (forced-colors:active) { .earth-globe { forced-color-adjust:none; } .sky-canvas { forced-color-adjust:none; } .star-popover { border-color:CanvasText; } }
+.visible-stars button { flex: 1; min-width: 0; width: auto; }
+.visible-stars a { flex-shrink: 0; }
