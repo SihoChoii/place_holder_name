@@ -16,6 +16,11 @@ export interface SummaryToolsOptions {
   guideBaseUrl?: string;
   guideModel?: string;
   guideTimeoutMs?: number;
+  /**
+   * Optional host model call for the blurb rewrite (Stargaze addition). When set, it replaces the direct
+   * native-Ollama request so the host's own client (Ollama or OpenAI-compatible, with auth) is used.
+   */
+  rewrite?: (messages: { role: 'system' | 'user'; content: string }[], signal?: AbortSignal) => Promise<string>;
   xaiApiKey?: string;
   voice?: string;
   language?: string;
@@ -79,6 +84,14 @@ export function createSummaryTools(options: SummaryToolsOptions = {}) {
     request: { audio?: boolean; signal?: AbortSignal } = {},
   ): Promise<StarSummaryResult> {
     request.signal?.throwIfAborted();
+    const rewriteMessages = (source: WikipediaSummary) => [
+      { role: 'system' as const, content: 'Rewrite the supplied Wikipedia extract into a short, fun star blurb. Use 2 or 3 sentences and at most 80 words. Keep it under 600 characters, plain text, and suitable for reading aloud. Use the supplied information.' },
+      { role: 'user' as const, content: JSON.stringify({ title: source.title, extract: source.extract }) },
+    ];
+    if (options.rewrite) {
+      const source = await get_wikipedia_summary(name, request.signal);
+      return finish(source, await options.rewrite(rewriteMessages(source), request.signal), request);
+    }
     if (!options.guideBaseUrl?.trim() || !options.guideModel?.trim()) {
       throw new SummaryToolError('not_configured', 'GUIDE_BASE_URL and GUIDE_MODEL are required to rewrite a summary');
     }
@@ -103,10 +116,7 @@ export function createSummaryTools(options: SummaryToolsOptions = {}) {
       body: JSON.stringify({
         model: options.guideModel.trim(), stream: false, think: false,
         options: { num_predict: 160, num_ctx: 4096, temperature: 0.3 },
-        messages: [
-          { role: 'system', content: 'Rewrite the supplied Wikipedia extract into a short, fun star blurb. Use 2 or 3 sentences and at most 80 words. Keep it under 600 characters, plain text, and suitable for reading aloud. Use the supplied information.' },
-          { role: 'user', content: JSON.stringify({ title: source.title, extract: source.extract }) },
-        ],
+        messages: rewriteMessages(source),
       }),
     }, { fetchImpl, signal: request.signal, timeoutMs, maxBytes: 64 * 1024, service: 'Gemma' });
     if (response.status < 200 || response.status >= 300) {
@@ -123,8 +133,13 @@ export function createSummaryTools(options: SummaryToolsOptions = {}) {
       || typeof data.message.content !== 'string' || !data.message.content.trim()) {
       throw new SummaryToolError('invalid_response', 'Gemma returned no blurb text');
     }
+    return finish(source, data.message.content, request);
+  }
+
+  async function finish(source: WikipediaSummary, text: string, request: { audio?: boolean; signal?: AbortSignal }): Promise<StarSummaryResult> {
+    if (typeof text !== 'string' || !text.trim()) throw new SummaryToolError('invalid_response', 'Gemma returned no blurb text');
     // Mechanical presentation limits only; no content verification or trust pipeline.
-    let blurb = data.message.content.trim().split(/\s+/).slice(0, 80).join(' ');
+    let blurb = text.trim().split(/\s+/).slice(0, 80).join(' ');
     if (blurb.length > 600) {
       const boundary = blurb.lastIndexOf(' ', 600);
       if (boundary < 1) throw new SummaryToolError('invalid_response', 'Gemma returned no usable short blurb');

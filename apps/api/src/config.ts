@@ -1,6 +1,7 @@
 import { config as loadDotenv } from "dotenv";
 import { summaryOptionsFromEnv, type SummaryToolsOptions } from "./guide/astral/summaries.js";
 import { LIMITS } from "@stargaze/shared";
+import type { ApiStyle } from "./models/http.js";
 import { fromRoot, REPO_ROOT } from "./lib/paths.js";
 
 export interface Config {
@@ -17,8 +18,9 @@ export interface Config {
   modelLockPath: string;
   jwtSecret: string;
   cookieSecure: boolean;
-  guide: { baseUrl: string; model: string; timeoutMs: number; think: boolean };
-  clef: { baseUrl: string; model: string; callTimeoutMs: number; jobTimeoutMs: number };
+  /** apiKey is sent as a Bearer token only; never logged or reported. */
+  guide: { baseUrl: string; model: string; timeoutMs: number; think: boolean; apiStyle: ApiStyle; apiKey: string };
+  clef: { baseUrl: string; model: string; callTimeoutMs: number; jobTimeoutMs: number; apiStyle: ApiStyle; apiKey: string };
   moderationEnabled: boolean;
   claimCooldownSeconds: number;
   rate: { loginPerMin: number; signupPerHour: number; writesPerMin: number; chatPerHour: number; summaryPerHour: number };
@@ -50,6 +52,12 @@ function bool(env: Env, name: string, dflt: boolean): boolean {
   if (/^(1|true|yes)$/i.test(raw)) return true;
   if (/^(0|false|no)$/i.test(raw)) return false;
   throw new Error(`${name} must be true or false`);
+}
+
+function apiStyle(env: Env, name: string): ApiStyle {
+  const raw = (pick(env, name) ?? "ollama").toLowerCase();
+  if (raw !== "ollama" && raw !== "openai") throw new Error(`${name} must be ollama or openai`);
+  return raw;
 }
 
 function httpUrl(name: string, raw: string | undefined): string {
@@ -94,12 +102,16 @@ export function loadConfig(env: Env = process.env, { dotenv = true, partial = fa
       model: pick(env, "GUIDE_MODEL", "GEMMA_MODEL") ?? "gemma4:e4b-it-q4_K_M",
       timeoutMs: int(env, "GUIDE_TIMEOUT_MS", LIMITS.guideDeadlineMs, 1000),
       think: bool(env, "GUIDE_THINK", false),
+      apiStyle: apiStyle(env, "GUIDE_API_STYLE"),
+      apiKey: pick(env, "GUIDE_API_KEY") ?? "",
     },
     clef: {
       baseUrl: httpUrl("CLEF_BASE_URL", pick(env, "CLEF_BASE_URL") ?? (partial ? "http://unset.invalid" : undefined)),
       model: pick(env, "CLEF_MODEL") ?? "clef-flash:9b-q8_0",
       callTimeoutMs: int(env, "CLEF_CALL_TIMEOUT_MS", 30_000, 1000),
       jobTimeoutMs: int(env, "CLEF_JOB_TIMEOUT_MS", 120_000, 1000),
+      apiStyle: apiStyle(env, "CLEF_API_STYLE"),
+      apiKey: pick(env, "CLEF_API_KEY") ?? "",
     },
     moderationEnabled: bool(env, "MODERATION_ENABLED", true),
     claimCooldownSeconds: int(env, "CLAIM_COOLDOWN_SECONDS", LIMITS.claimCooldownSeconds, 0),

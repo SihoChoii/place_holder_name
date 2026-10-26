@@ -20,6 +20,7 @@ import { GemmaClient } from "./models/gemma.js";
 import { ModerationWorker } from "./moderation/worker.js";
 import { GuideQueue } from "./guide/service.js";
 import { createSummaryTools } from "./guide/astral/summaries.js";
+import { rewriteWithGuide } from "./guide/summary.js";
 import authRoutes from "./routes/auth.js";
 import agentRoutes from "./routes/agent.js";
 import healthRoutes, { Readiness } from "./routes/health.js";
@@ -57,13 +58,16 @@ export async function buildApp(config: Config, opts: BuildOptions = {}): Promise
   migrate(db);
   const catalog = opts.catalog ?? (catalogCache ??= loadCatalog(config.catalogDir));
   const store = new MediaStore(config.mediaDir);
+  const clef = new ClefClient(config.clef.baseUrl, config.clef.model, config.clef.callTimeoutMs, config.clef.apiKey);
+  const gemma = new GemmaClient(config.guide.baseUrl, config.guide.model, config.guide.timeoutMs, config.guide.think,
+    { style: config.guide.apiStyle, apiKey: config.guide.apiKey });
   const ctx = buildCtx({
     config, db, app, catalog, now: opts.now ?? Date.now,
-    clef: new ClefClient(config.clef.baseUrl, config.clef.model, config.clef.callTimeoutMs),
-    gemma: new GemmaClient(config.guide.baseUrl, config.guide.model, config.guide.timeoutMs, config.guide.think),
+    clef, gemma,
     summary: createSummaryTools({
       ...config.summary, guideBaseUrl: config.guide.baseUrl, guideModel: config.guide.model,
       guideTimeoutMs: config.guide.timeoutMs, fetch: opts.summaryFetch,
+      rewrite: (messages, signal) => rewriteWithGuide(gemma, messages, signal),
     }),
   });
   const worker = new ModerationWorker(ctx, store, (o, msg) => app.log.info(o, msg));

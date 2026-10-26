@@ -4,10 +4,9 @@ import { schemas } from "@stargaze/shared";
 import type { Ctx } from "../context.js";
 import type { MediaStore } from "../media/store.js";
 import { questionsFor } from "../moderation/policy.js";
-import { listModels, ollamaVersion } from "../models/http.js";
+import { modelIdentity, sameIdentity, type ModelIdentity } from "../models/http.js";
 
 export type ComponentState = { status: "ok" | "unavailable" | "disabled" | "unknown" | "unverified" | "drift"; checked_at: number | null; detail?: string };
-interface ModelIdentity { ollama_version: string; model: string; digest: string }
 
 /**
  * Readiness probes. Database and disk are checked per request (cheap). Model capability is probed in the
@@ -36,17 +35,17 @@ export class Readiness {
     try {
       await capability();
       const config = role === "guide" ? this.ctx.config.guide : this.ctx.config.clef;
-      const [version, tags] = await Promise.all([ollamaVersion(config.baseUrl), listModels(config.baseUrl)]);
+      // Ollama: /api/version + /api/tags digest. OpenAI-style (Unsloth): /v1/models id (+ loaded flag).
+      const actual = await modelIdentity(config.apiStyle, config.baseUrl, config.model, config.apiKey);
       let expected: ModelIdentity | undefined;
       try {
         const lock = JSON.parse(readFileSync(this.ctx.config.modelLockPath, "utf8")) as Record<string, ModelIdentity>;
         expected = lock[role];
-        if (!expected?.ollama_version || !expected.model || !expected.digest) throw new Error("invalid lock");
+        if (!expected?.model || (config.apiStyle === "ollama" && (!expected.ollama_version || !expected.digest))) throw new Error("invalid lock");
       } catch {
         return { status: "unverified", checked_at: this.ctx.now(), detail: "preflight_required" };
       }
-      const actual = tags.find((m) => m.name === config.model || m.model === config.model);
-      if (expected.model !== config.model || expected.ollama_version !== version || expected.digest !== actual?.digest) {
+      if (!sameIdentity(config.apiStyle, expected, actual)) {
         return { status: "drift", checked_at: this.ctx.now(), detail: "model_identity_changed" };
       }
       return { status: "ok", checked_at: this.ctx.now() };
