@@ -12,9 +12,9 @@ final class APIClient {
   var token: String?
   var onUnauthorized: (() -> Void)?
   let session: URLSession
-  init(origin: String) {
+  init(origin: String, configuration: URLSessionConfiguration? = nil) {
     self.origin = origin
-    let config = URLSessionConfiguration.ephemeral
+    let config = configuration ?? URLSessionConfiguration.ephemeral
     config.httpShouldSetCookies = false
     config.httpCookieStorage = nil
     config.timeoutIntervalForRequest = 20
@@ -65,8 +65,11 @@ final class APIClient {
     _ path: String, method: String = "GET", body: Data? = nil, key: String? = nil,
     contentType: String = "application/json"
   ) async throws -> Data {
+    let requestedOrigin = origin
+    let requestedToken = token
     let req = try request(path, method: method, body: body, key: key, contentType: contentType)
     let (data, response) = try await session.data(for: req)
+    guard origin == requestedOrigin, token == requestedToken else { throw CancellationError() }
     try validate(
       data, response,
       expireSession: req.value(forHTTPHeaderField: "Authorization") == token.map { "Bearer \($0)" })
@@ -85,9 +88,12 @@ final class APIClient {
   func pages<T: Codable & Hashable>(_ path: String, count: Int = 1, as: T.Type = T.self)
     async throws -> Page<T>
   {
+    let requestedOrigin = origin
+    let requestedToken = token
     var result: [T] = []
     var cursor: String?
     for page in 0..<max(1, count) {
+      guard origin == requestedOrigin, token == requestedToken else { throw CancellationError() }
       if page > 0 && cursor == nil { break }
       let suffix =
         cursor.map { (path.contains("?") ? "&" : "?") + "cursor=" + Self.query($0) } ?? ""

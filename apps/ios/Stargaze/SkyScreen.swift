@@ -288,6 +288,10 @@ struct ContentView: View {
       ctx.fill(
         Path(ellipseIn: rect),
         with: .color(.white.opacity(max(0.25, min(1, 1 - (m.star.mag + 1) / 10)))))
+      if selected?.id == m.star.id {
+        ctx.stroke(
+          Path(ellipseIn: rect.insetBy(dx: -10, dy: -10)), with: .color(.white), lineWidth: 2)
+      }
       if let overlay = overlays[m.star.id]
         ?? session.checkedStars[m.star.id].flatMap({
           Date().timeIntervalSince($0.checkedAt) < 15 ? $0.overlay : nil

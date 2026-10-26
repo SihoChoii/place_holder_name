@@ -13,6 +13,23 @@ final class StarTaggerTests: XCTestCase {
     XCTAssertEqual(sirius.skyStar.ra * 15, sirius.ra_deg, accuracy: 0.000001)
     XCTAssertEqual(sirius.skyStar.noteKey, "hyg:32263")
     XCTAssertEqual(StarCatalog.constellations?.constellations.count, 88)
+    XCTAssertEqual(
+      StarCatalog.stars.first?.id, 32263,
+      "The bounded visible-star request prioritizes the brightest stars")
+  }
+  func testCatalogRejectsChangedDataAndVersion() throws {
+    let data = try Data(
+      contentsOf: XCTUnwrap(Bundle.main.url(forResource: "stars", withExtension: "json")))
+    let manifest = try Data(
+      contentsOf: XCTUnwrap(Bundle.main.url(forResource: "VERSION", withExtension: "json")))
+    var changed = data
+    changed.append(32)  // Still valid JSON, but no longer the pinned catalog bytes.
+    XCTAssertThrowsError(try StarCatalog.verifiedRecords(data: changed, manifest: manifest))
+    let wrongVersion = Data(
+      String(decoding: manifest, as: UTF8.self).replacingOccurrences(
+        of: StarCatalog.version, with: "different-catalog"
+      ).utf8)
+    XCTAssertThrowsError(try StarCatalog.verifiedRecords(data: data, manifest: wrongVersion))
   }
   func testCodePointLimitsAndStableMultipartBytes() throws {
     let valid = try MultipartDraft(
@@ -52,6 +69,41 @@ final class StarTaggerTests: XCTestCase {
       try client.validate(
         Data("{\"error\":{\"code\":\"unauthorized\",\"message\":\"Expired\"}}".utf8), response))
     XCTAssertTrue(cleared)
+  }
+  @MainActor func testInFlightResponsesCannotRestoreOrExpireAnotherSession() async throws {
+    let config = URLSessionConfiguration.ephemeral
+    config.protocolClasses = [DeferredResponseProtocol.self]
+    let client = APIClient(origin: "https://example.com", configuration: config)
+    var unauthorized = false
+    client.onUnauthorized = { unauthorized = true }
+    defer {
+      DeferredResponseProtocol.handler = nil
+      client.session.invalidateAndCancel()
+    }
+    for status in [401, 200] {
+      client.token = "original-session"
+      let started = expectation(description: "Request has captured its original identity")
+      var pending: DeferredResponseProtocol?
+      DeferredResponseProtocol.handler = { response in
+        DispatchQueue.main.async {
+          pending = response
+          started.fulfill()
+        }
+      }
+      let request = Task { try await client.data("/api/me") }
+      await fulfillment(of: [started], timeout: 3)
+      if status == 401 {
+        client.token = "new-session"
+      } else {
+        client.origin = "https://another.example"
+      }
+      try XCTUnwrap(pending).respond(status: status)
+      do {
+        _ = try await request.value
+        XCTFail("An obsolete response must not enter the new session")
+      } catch is CancellationError {} catch { XCTFail("Unexpected error: \(error)") }
+      XCTAssertFalse(unauthorized, "An old 401 must not clear the new login")
+    }
   }
   func testPendingUploadSurvivesReloadWithExactBytes() throws {
     let namespace = "test-" + UUID().uuidString
@@ -205,5 +257,33 @@ final class StarTaggerTests: XCTestCase {
       let _: Tag = try await api.get("/api/tags/\(post.tag.id)")
       XCTFail("Deleted post should be hidden")
     } catch let error as APIErrorBody { XCTAssertEqual(error.error.code, "not_found") }
+  }
+}
+
+private final class DeferredResponseProtocol: URLProtocol {
+  private static let lock = NSLock()
+  private static var storedHandler: ((DeferredResponseProtocol) -> Void)?
+  static var handler: ((DeferredResponseProtocol) -> Void)? {
+    get {
+      lock.lock()
+      defer { lock.unlock() }
+      return storedHandler
+    }
+    set {
+      lock.lock()
+      defer { lock.unlock() }
+      storedHandler = newValue
+    }
+  }
+  override class func canInit(with request: URLRequest) -> Bool { true }
+  override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+  override func startLoading() { Self.handler?(self) }
+  override func stopLoading() {}
+  func respond(status: Int) {
+    let response = HTTPURLResponse(
+      url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!
+    client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+    client?.urlProtocol(self, didLoad: Data("{}".utf8))
+    client?.urlProtocolDidFinishLoading(self)
   }
 }

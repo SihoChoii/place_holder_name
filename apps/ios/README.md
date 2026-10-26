@@ -29,7 +29,7 @@ For development, the Debug build also accepts `STARTAGGER_API_ORIGIN` in its lau
 
 ## Repeatable tests
 
-The ordinary native suite checks catalog units/identity/null distances, Unicode limits and multipart bytes, protected persisted retries, link checks, bearer isolation/401 handling, and SSE parsing. The HTTP integration test is opt-in; the physical camera test skips in Simulator.
+The ordinary native suite checks catalog checksum/version/units/identity/null distances, Unicode limits and multipart bytes, protected persisted retries, link checks, bearer isolation/401 handling, rejection of obsolete account responses, and SSE parsing. The HTTP integration test is opt-in; the physical camera test skips in Simulator.
 
 Start a **disposable** backend from the repository root:
 

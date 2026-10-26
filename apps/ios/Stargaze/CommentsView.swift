@@ -91,12 +91,13 @@ struct CommentsView: View {
     }
   }
   private func load(_ next: String? = nil) async {
+    let requestedIdentity = session.identity
     do {
       let page: Page<Comment> = try await session.api.pages(
         "/api/\(session.signedIn ? "" : "public/")tags/\(tagID)/comments"
           + (next.map { "?cursor=\(APIClient.query($0))" } ?? ""),
         count: next == nil ? loadedPages : 1)
-      guard !Task.isCancelled else { return }
+      guard !Task.isCancelled, session.identity == requestedIdentity else { return }
       if next == nil {
         items = page.items
       } else {
@@ -104,9 +105,14 @@ struct CommentsView: View {
       }
       if next != nil { loadedPages += 1 }
       cursor = page.nextCursor
-    } catch { if !Task.isCancelled { self.error = error.localizedDescription } }
+    } catch {
+      if !Task.isCancelled, session.identity == requestedIdentity {
+        self.error = error.localizedDescription
+      }
+    }
   }
   private func send() async {
+    let requestedIdentity = session.identity
     busy = true
     defer { busy = false }
     if key == nil {
@@ -115,12 +121,13 @@ struct CommentsView: View {
     }
     do {
       try PendingWrites.save(
-        PendingComment(key: key!, body: submittedText ?? text), namespace: session.identity,
+        PendingComment(key: key!, body: submittedText ?? text), namespace: requestedIdentity,
         resource: "comment-\(tagID)")
       let _: CreateCommentResponse = try await session.api.send(
         "/api/tags/\(tagID)/comments",
         body: APIClient.encode(CreateCommentRequest(body: submittedText ?? text)), key: key)
-      PendingWrites.remove(namespace: session.identity, resource: "comment-\(tagID)")
+      PendingWrites.remove(namespace: requestedIdentity, resource: "comment-\(tagID)")
+      guard session.identity == requestedIdentity else { return }
       key = nil
       submittedText = nil
       text = ""
@@ -128,12 +135,13 @@ struct CommentsView: View {
       await load()
       changed()
     } catch let failure as APIErrorBody {
+      guard session.identity == requestedIdentity else { return }
       error = failure.localizedDescription
       if failure.error.code == "validation_failed" {
-        PendingWrites.remove(namespace: session.identity, resource: "comment-\(tagID)")
+        PendingWrites.remove(namespace: requestedIdentity, resource: "comment-\(tagID)")
         key = nil
         submittedText = nil
       }
-    } catch { self.error = error.localizedDescription }
+    } catch { if session.identity == requestedIdentity { self.error = error.localizedDescription } }
   }
 }

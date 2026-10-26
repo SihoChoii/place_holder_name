@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 struct CatalogRecord: Decodable, Sendable {
@@ -33,17 +34,42 @@ struct ConstellationBundle: Decodable {
 enum StarCatalog {
   static let version = "hyg-4.4-mag6.5-20261025"
   static let result: Result<[CatalogRecord], Error> = Result {
-    guard let url = Bundle.main.url(forResource: "stars", withExtension: "json") else {
+    guard let url = Bundle.main.url(forResource: "stars", withExtension: "json"),
+      let manifest = Bundle.main.url(forResource: "VERSION", withExtension: "json")
+    else {
       throw CatalogError.missing
     }
-    let records = try JSONDecoder().decode([CatalogRecord].self, from: Data(contentsOf: url))
-    guard records.count == 8920, Set(records.map(\.hyg_id)).count == 8920 else {
+    return try verifiedRecords(data: Data(contentsOf: url), manifest: Data(contentsOf: manifest))
+  }
+  static func verifiedRecords(data: Data, manifest: Data) throws -> [CatalogRecord] {
+    struct Manifest: Decodable {
+      let catalog_version: String
+      let sha256: String
+      let star_count: Int
+    }
+    let metadata = try JSONDecoder().decode(Manifest.self, from: manifest)
+    let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+    guard metadata.catalog_version == version, metadata.star_count == 8920,
+      metadata.sha256 == digest
+    else {
+      throw CatalogError.invalid
+    }
+    let records = try JSONDecoder().decode([CatalogRecord].self, from: data)
+    guard records.count == metadata.star_count,
+      Set(records.map(\.hyg_id)).count == metadata.star_count
+    else {
       throw CatalogError.invalid
     }
     return records
   }
   static var records: [CatalogRecord] { (try? result.get()) ?? [] }
-  static let stars = records.map(\.skyStar)
+  static let stars: [SkyStar] = {
+    let mapped: [SkyStar] = records.map { $0.skyStar }
+    return mapped.sorted { (lhs: SkyStar, rhs: SkyStar) -> Bool in
+      if lhs.mag == rhs.mag { return lhs.id < rhs.id }
+      return lhs.mag < rhs.mag
+    }
+  }()
   static let byID = Dictionary(uniqueKeysWithValues: records.map { ($0.hyg_id, $0) })
   static let byNoteKey = Dictionary(uniqueKeysWithValues: stars.map { ($0.noteKey, $0) })
   static let constellations: ConstellationBundle? = {

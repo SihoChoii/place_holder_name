@@ -87,6 +87,8 @@ struct ExploreView: View {
   private func load(_ cursor: String? = nil) async {
     busy = true
     defer { busy = false }
+    let requestedIdentity = session.identity
+    let requestedQuery = query
     let search = !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     let route =
       "/api/\(session.signedIn ? "explore" : "public")/\(search ? "search?q=\(APIClient.query(query))" : "feed?limit=20")"
@@ -112,7 +114,9 @@ struct ExploreView: View {
         new = response.items
         next = response.nextCursor
       }
-      guard !Task.isCancelled else { return }
+      guard !Task.isCancelled, requestedIdentity == session.identity, requestedQuery == query else {
+        return
+      }
       if cursor == nil {
         posts = new
       } else {
@@ -121,6 +125,10 @@ struct ExploreView: View {
       if cursor != nil { loadedPages += 1 }
       nextCursor = next
       error = nil
-    } catch { if !Task.isCancelled { self.error = error.localizedDescription } }
+    } catch {
+      if !Task.isCancelled, requestedIdentity == session.identity, requestedQuery == query {
+        self.error = error.localizedDescription
+      }
+    }
   }
 }

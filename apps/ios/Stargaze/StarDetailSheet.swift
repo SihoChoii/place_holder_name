@@ -97,6 +97,9 @@ struct StarDetailSheet: View {
           error = nil
           travel = nil
           loadedPages = 1
+          nextCursor = nil
+          retryAt = nil
+          actionError = nil
           loading = true
         }
         .task(id: "\(session.identity)|\(phase)") {
@@ -182,7 +185,7 @@ struct StarDetailSheet: View {
         travel = try? await session.api.get("/api/stars/\(star.id)/travel-time?speed_km_s=17")
       }
     } catch {
-      if !Task.isCancelled {
+      if !Task.isCancelled, session.identity == identity {
         self.error = error.localizedDescription
         loading = false
       }
@@ -199,10 +202,12 @@ struct StarDetailSheet: View {
     } catch { actionError = error.localizedDescription }
   }
   private func more(_ cursor: String) async {
+    let requestedIdentity = session.identity
     do {
       let page: Page<Tag> = try await session.api.get(
         "/api/\(session.signedIn ? "" : "public/")stars/\(star.id)/tags?cursor=\(APIClient.query(cursor))"
       )
+      guard !Task.isCancelled, session.identity == requestedIdentity else { return }
       posts.append(contentsOf: page.items.filter { item in !posts.contains { $0.id == item.id } })
       loadedPages += 1
       nextCursor = page.nextCursor
@@ -213,6 +218,7 @@ struct StarDetailSheet: View {
     claiming = true
     actionError = nil
     defer { claiming = false }
+    let requestedIdentity = session.identity
     let storageKey = attemptKey
     let key = UserDefaults.standard.string(forKey: storageKey) ?? UUID().uuidString
     UserDefaults.standard.set(key, forKey: storageKey)
@@ -220,9 +226,11 @@ struct StarDetailSheet: View {
       let response: ClaimResponse = try await session.api.send(
         "/api/stars/\(star.id)/claim", key: key)
       UserDefaults.standard.removeObject(forKey: storageKey)
+      guard session.identity == requestedIdentity else { return }
       session.claimSucceeded(response)
       await load()
     } catch let failure as APIErrorBody {
+      guard session.identity == requestedIdentity else { return }
       actionError = failure.localizedDescription
       if failure.error.code == "on_cooldown" {
         retryAt = Date().addingTimeInterval(Double(failure.error.retryAfterSeconds ?? 0))
@@ -232,6 +240,7 @@ struct StarDetailSheet: View {
       }
       await load()
     } catch {
+      guard session.identity == requestedIdentity else { return }
       actionError =
         "Could not confirm the claim. Retry to check the same request. \(error.localizedDescription)"
     }
