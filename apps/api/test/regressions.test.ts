@@ -163,7 +163,9 @@ test("session tokens must carry iss, aud, sub and exp even when signed with the 
   const me = (token: string) => h.server.app.inject({ url: "/api/me", headers: { authorization: `Bearer ${token}` } });
   assert.equal((await me(a.token)).statusCode, 200);
   const jwt = h.server.app.jwt;
-  const exp = Math.floor(h.clock.t / 1000) + 3600;
+  const exp = Math.floor(h.clock.t / 1000) + 7 * 86400; // valid on both the test clock and the wall clock
+  // Control: the same secret and exp with every required claim is accepted.
+  assert.equal((await me(jwt.sign({ sub: a.id, exp }, { iss: "stargaze-api", aud: "stargaze" } as never))).statusCode, 200);
   const forged = [
     jwt.sign({ sub: a.id, exp }),
     jwt.sign({ sub: a.id, exp }, { iss: "stargaze-api" } as never),
