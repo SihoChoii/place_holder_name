@@ -216,9 +216,27 @@ Rate limit: posts + comments 20/min/user (`429 rate_limited`).
 | `GET /public/search?q&cursor&limit` | same shape as `/explore/search` |
 | `GET /public/tags/:id/comments?cursor&limit` | `200 { items: Comment[], next_cursor }` |
 | `GET /public/media/:id?size=full\|thumb` | image bytes (WebP); only approved media of approved posts. `size` defaults to `full`; `thumb` is ≤ 320 px wide (never enlarged), generated on first request and cached. Other values → `400 validation_failed` |
+| `POST /agent/summary` | Auth. `200 SummaryResponse` (below): Wikipedia → Gemma blurb, optional xAI MP3 when `audio: true` and `XAI_API_KEY` is set |
 | `GET /public/claimed` | `200 ClaimedStarsResponse` (below); every claimed star, no paging (bounded by the 8,920-star catalog). Supports `If-None-Match` → `304` with an empty body |
 
 Public `Tag` objects omit `my_reactions` and `processing_state`; image URLs use `/api/public/media/:id`.
+
+#### `POST /agent/summary` (Astral Harness star blurb)
+
+Auth required (cookie or Bearer). Body `{ "hyg_id": number, "audio"?: boolean }`, unknown fields rejected. Looks up the star's
+proper name on Wikipedia (fixed host `en.wikipedia.org`, 5 s, 256 KB), rewrites the extract with Gemma into a blurb of at most
+80 words / 600 characters, and, only when `audio` is `true` **and** the server has `XAI_API_KEY`, adds xAI MP3 speech.
+
+`200 SummaryResponse`: `{ hyg_id, title, blurb, source: { title, url }, audio: null | { mime_type: "audio/mpeg", base64 } }`.
+A missing key or a failed speech call is not an error: the response is `200` with `audio: null`.
+Errors: `400 validation_failed`, `401 unauthorized`, `404 not_found` (unknown star, unnamed star, or no Wikipedia article),
+`429 rate_limited` + `Retry-After` (`RATE_SUMMARY_PER_HOUR`, default 30/user; turned-away requests are refunded),
+`503 guide_busy | guide_unavailable` (shares the guide's single model lane; Gemma or Wikipedia down), `504 guide_timeout`
+(`GUIDE_TIMEOUT_MS` deadline). `Cache-Control: private, no-store`. Fixtures: `agent-summary.request.json`, `agent-summary.200.json`.
+
+The guide chat (`POST /agent/chat`) now uses the Astral Harness system prompt and routed skills, and has a fourth read-only tool,
+`get_wikipedia_summary { hyg_id }`, which resolves the article from the in-scope star (never model-supplied text). The chat request
+body and the `start`/`delta`/`done`/`error` events are unchanged.
 
 #### `GET /public/claimed` (website sky)
 
@@ -314,6 +332,7 @@ Fixtures: `chat.request.json`, `chat.stream.sse.txt`, `chat.stream-error.sse.txt
 | `view-content.200.json` | overlay |
 | `search.200.json`, `public-star.200.json` | search / public star page |
 | `public-claimed.200.json` | `/public/claimed` |
+| `agent-summary.request.json`, `agent-summary.200.json` | `POST /agent/summary` |
 | `health-ready.200.json` | readiness |
 | `error.*.json` | error bodies |
 | `chat.request.json`, `chat.stream.sse.txt`, `chat.stream-error.sse.txt` | guide |
