@@ -28,7 +28,7 @@ export function SignupPage() {
   return (
     <main id="main-content" className="login-main">
       <h1>Create your account.</h1>
-      <p>Sign up to react, comment and ask the star guide.</p>
+      <p>Join StarTagger to save stars and keep your notes.</p>
       <form
         onSubmit={async (event) => {
           event.preventDefault();
@@ -76,7 +76,7 @@ export function SignupPage() {
             <Input
               id="signup-email"
               type="email"
-              autoComplete="username"
+              autoComplete="email"
               required
               maxLength={LIMITS.emailMax}
               value={email}
