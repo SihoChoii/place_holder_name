@@ -136,3 +136,24 @@ test("model errors: caller deadline is a timeout, caller cancellation is aborted
   assert.equal(toModelError(new DOMException("t", "TimeoutError")).kind, "timeout");
   assert.equal(toModelError(new TypeError("fetch failed")).kind, "unreachable");
 });
+
+test("guide_busy rejections do not consume the per-user chat allowance", { timeout: 15_000 }, async (t) => {
+  const h = await harness({ RATE_CHAT_PER_HOUR: "2", GUIDE_TIMEOUT_MS: "1000" }); t.after(() => h.close());
+  const [a, ...others] = await Promise.all(["busy-a", "busy-b", "busy-c", "busy-d"].map((n) => signup(h, n)));
+  const payload = { mode: "explore", messages: [{ role: "user", content: "Tell me about Sirius" }] };
+  const chat = (auth: Record<string, string>) => h.server.app.inject({ method: "POST", url: "/api/agent/chat", headers: auth, payload });
+  h.fake.mode = "hang";
+  const occupying = others.map((o) => chat(o.auth)); // 1 active + 2 waiting
+  await new Promise((r) => setTimeout(r, 150));
+  for (let i = 0; i < 3; i++) {
+    const res = await chat(a.auth);
+    assert.equal(res.statusCode, 503);
+    assert.equal(res.json().error.code, "guide_busy");
+  }
+  await Promise.all(occupying);
+  h.fake.mode = "ok";
+  for (let i = 0; i < 2; i++) assert.equal((await chat(a.auth)).statusCode, 200);
+  const limited = await chat(a.auth);
+  assert.equal(limited.statusCode, 429);
+  assert.equal(limited.json().error.code, "rate_limited");
+});

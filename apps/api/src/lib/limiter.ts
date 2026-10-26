@@ -21,6 +21,12 @@ export class RateLimiter {
     if (this.windows.size > 10_000) this.sweep(t);
   }
 
+  /** Give back one hit in the current window (work that was counted but never admitted). */
+  refund(key: string): void {
+    const w = this.windows.get(key);
+    if (w && w.resetAt > this.now() && w.count > 0) w.count--;
+  }
+
   private sweep(t: number) {
     for (const [k, w] of this.windows) if (w.resetAt <= t) this.windows.delete(k);
   }

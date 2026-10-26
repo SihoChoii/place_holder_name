@@ -107,7 +107,8 @@ const modelErr = (e: unknown) =>
 export async function handleChat(ctx: Ctx, queue: GuideQueue, req: FastifyRequest, reply: FastifyReply, viewer: Extract<Viewer, { kind: "user" }>, body: ChatRequest) {
   const { scope, selected } = validate(ctx, body);
   const messages = buildMessages(ctx, body, scope, selected);
-  ctx.limiter.hit(`chat:${viewer.id}`, ctx.config.rate.chatPerHour, 3600_000);
+  const rateKey = `chat:${viewer.id}`;
+  ctx.limiter.hit(rateKey, ctx.config.rate.chatPerHour, 3600_000);
 
   // One deadline covering queue wait + planner + stream; client disconnect cancels everything.
   const disconnect = new AbortController();
@@ -119,6 +120,7 @@ export async function handleChat(ctx: Ctx, queue: GuideQueue, req: FastifyReques
     try {
       release = await queue.acquire(signal);
     } catch (e) {
+      ctx.limiter.refund(rateKey); // only admitted requests count toward the hourly allowance
       if (e instanceof AppError) throw e;
       throw new AppError(504, "guide_timeout", "The guide took too long to answer.");
     }
