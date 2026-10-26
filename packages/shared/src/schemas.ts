@@ -345,6 +345,28 @@ export const ChatBody = {
   },
 } as const;
 
+export const SummaryBody = {
+  type: "object",
+  required: ["hyg_id"],
+  additionalProperties: false,
+  properties: { hyg_id: hygId, audio: { type: "boolean" } },
+} as const;
+
+export const SummaryResponse = {
+  type: "object",
+  required: ["hyg_id", "title", "blurb", "source", "audio"],
+  properties: {
+    hyg_id: hygId,
+    title: { type: "string" },
+    blurb: { type: "string", maxLength: 600 },
+    source: { type: "object", required: ["title", "url"], properties: { title: { type: "string" }, url: { type: "string" } } },
+    audio: nullable({
+      type: "object", required: ["mime_type", "base64"],
+      properties: { mime_type: { type: "string", enum: ["audio/mpeg"] }, base64: { type: "string" } },
+    }),
+  },
+} as const;
+
 export const HealthReady = {
   type: "object",
   required: ["status", "components"],

@@ -4,6 +4,7 @@ import type { Ctx } from "../context.js";
 import { claimInfo, type ClaimRow } from "../services/claims.js";
 import { starTags } from "../services/content.js";
 import { travelTime } from "../catalog/index.js";
+import { SummaryToolError } from "./astral/summaries.js";
 
 /** Star scope for one guide request: null = whole catalog (explore mode). */
 export type Scope = Set<number> | null;
@@ -30,6 +31,14 @@ export const TOOL_SCHEMAS = [
     function: {
       name: "get_star_content",
       description: "Recent approved community posts on a star",
+      parameters: { type: "object", properties: { hyg_id: { type: "integer" } }, required: ["hyg_id"] },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_wikipedia_summary",
+      description: "Wikipedia extract for a named star",
       parameters: { type: "object", properties: { hyg_id: { type: "integer" } }, required: ["hyg_id"] },
     },
   },
@@ -65,10 +74,7 @@ export function starFacts(ctx: Ctx, hygId: number) {
 export function runTool(ctx: Ctx, scope: Scope, name: string, rawArgs: unknown): object {
   const args = (typeof rawArgs === "string" ? safeJson(rawArgs) : rawArgs) as Record<string, unknown> | null;
   if (!args || typeof args !== "object" || Array.isArray(args)) throw new ToolError("arguments must be an object");
-  const allowed: Record<string, string[]> = { get_star: ["hyg_id"], calculate_travel_time: ["hyg_id", "speed_km_s"], get_star_content: ["hyg_id"] };
-  if (!allowed[name]) throw new ToolError(`unknown tool ${name}`);
-  if (Object.keys(args).some((k) => !allowed[name].includes(k))) throw new ToolError("unexpected argument");
-  const id = starId(ctx, scope, args);
+  const id = checkedStar(ctx, scope, name, args);
   switch (name) {
     case "get_star":
       return starFacts(ctx, id);
@@ -84,6 +90,38 @@ export function runTool(ctx: Ctx, scope: Scope, name: string, rawArgs: unknown):
       const page = starTags(ctx, PUBLIC, id, { limit: 2 });
       return { hyg_id: id, posts: page.items.map((t) => ({ by: t.author.display_name, note: t.note ? trunc(t.note, 140) : null, photos: t.media.filter((m) => m.kind === "image").length })) };
     }
+  }
+}
+
+const ALLOWED_ARGS: Record<string, string[]> = {
+  get_star: ["hyg_id"], calculate_travel_time: ["hyg_id", "speed_km_s"], get_star_content: ["hyg_id"], get_wikipedia_summary: ["hyg_id"],
+};
+
+function checkedStar(ctx: Ctx, scope: Scope, name: string, args: Record<string, unknown>) {
+  if (!ALLOWED_ARGS[name]) throw new ToolError(`unknown tool ${name}`);
+  if (Object.keys(args).some((k) => !ALLOWED_ARGS[name].includes(k))) throw new ToolError("unexpected argument");
+  return starId(ctx, scope, args);
+}
+
+/** Wikipedia article title for a catalog star: its proper name only (designations rarely match an article). */
+export const wikipediaName = (ctx: Ctx, hygId: number) => ctx.catalog.get(hygId)?.name?.trim() || null;
+
+/**
+ * Async entry point for the guide. get_wikipedia_summary resolves the article from the authorized (in-scope)
+ * star, never from model text, and fetches only the fixed Wikipedia host with the harness timeout/size limits.
+ */
+export async function runGuideTool(ctx: Ctx, scope: Scope, name: string, rawArgs: unknown, signal?: AbortSignal): Promise<object> {
+  if (name !== "get_wikipedia_summary") return runTool(ctx, scope, name, rawArgs);
+  const args = (typeof rawArgs === "string" ? safeJson(rawArgs) : rawArgs) as Record<string, unknown> | null;
+  if (!args || typeof args !== "object" || Array.isArray(args)) throw new ToolError("arguments must be an object");
+  const id = checkedStar(ctx, scope, name, args);
+  const title = wikipediaName(ctx, id);
+  if (!title) throw new ToolError("no Wikipedia article for this star");
+  try {
+    const a = await ctx.summary.get_wikipedia_summary(title, signal);
+    return { hyg_id: id, title: a.title, extract: trunc(a.extract, 600), url: a.url };
+  } catch (e) {
+    throw e instanceof SummaryToolError ? new ToolError(`wikipedia ${e.code}`) : e;
   }
 }
 

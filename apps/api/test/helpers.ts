@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import sharp from "sharp";
 import { loadConfig } from "../src/config.js";
-import { buildApp, type Server } from "../src/app.js";
+import { buildApp, type BuildOptions, type Server } from "../src/app.js";
 import { startFakeOllama, type FakeOllama } from "./fixtures/fake-ollama.js";
 
 export const ORIGIN = "http://stargaze.test:3000";
@@ -16,7 +16,7 @@ export interface Harness {
 }
 
 /** A server on a temporary database/media directory, pointed at the fake model server. Never touches ./data. */
-export async function harness(extraEnv: Record<string, string> = {}): Promise<Harness> {
+export async function harness(extraEnv: Record<string, string> = {}, opts: Pick<BuildOptions, "summaryFetch"> = {}): Promise<Harness> {
   const dir = mkdtempSync(join(tmpdir(), "stargaze-test-"));
   const fake = await startFakeOllama();
   const clock = { t: Date.UTC(2026, 9, 25, 22, 0, 0) };
@@ -27,7 +27,7 @@ export async function harness(extraEnv: Record<string, string> = {}): Promise<Ha
     ...extraEnv,
   };
   const config = loadConfig(env, { dotenv: false });
-  const make = () => buildApp(config, { now: () => clock.t, logger: process.env.TEST_LOG ? { level: "error" } : false, webDist: null });
+  const make = () => buildApp(config, { now: () => clock.t, logger: process.env.TEST_LOG ? { level: "error" } : false, webDist: null, ...opts });
   const h: Harness = {
     server: await make(), fake, dir, clock,
     async reopen() { await h.server.close(); h.server = await make(); return h.server; },

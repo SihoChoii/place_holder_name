@@ -6,6 +6,7 @@ import type { Config } from "./config.js";
 import { RateLimiter } from "./lib/limiter.js";
 import type { ClefClient } from "./models/clef.js";
 import type { GemmaClient } from "./models/gemma.js";
+import type { createSummaryTools } from "./guide/astral/summaries.js";
 
 /** Prepared statements shared by several modules. */
 function commonQueries(db: DB): Record<"userById" | "claimByStar" | "latestClaimAt", Statement> {
@@ -29,6 +30,8 @@ export interface Ctx {
   limiter: RateLimiter;
   clef: ClefClient;
   gemma: GemmaClient;
+  /** Astral Harness Wikipedia lookup, Gemma rewrite and optional xAI speech. */
+  summary: ReturnType<typeof createSummaryTools>;
   /** Wakes the moderation loop after new jobs are inserted. */
   notifyModeration: () => void;
 }
