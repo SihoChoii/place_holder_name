@@ -156,3 +156,25 @@ test("orphan cleanup removes old normalization outputs while preserving recent u
   assert.equal(response.statusCode, 400);
   assert.equal(existsSync(recent), true);
 });
+
+test("session tokens must carry iss, aud, sub and exp even when signed with the server secret", async (t) => {
+  const h = await harness(); t.after(() => h.close());
+  const a = await signup(h, "claims");
+  const me = (token: string) => h.server.app.inject({ url: "/api/me", headers: { authorization: `Bearer ${token}` } });
+  assert.equal((await me(a.token)).statusCode, 200);
+  const jwt = h.server.app.jwt;
+  const exp = Math.floor(h.clock.t / 1000) + 3600;
+  const forged = [
+    jwt.sign({ sub: a.id, exp }),
+    jwt.sign({ sub: a.id, exp }, { iss: "stargaze-api" } as never),
+    jwt.sign({ sub: a.id, exp }, { aud: "stargaze" } as never),
+    jwt.sign({ exp }, { iss: "stargaze-api", aud: "stargaze" } as never),
+  ];
+  for (const token of forged) {
+    const res = await me(token);
+    assert.equal(res.statusCode, 401, token);
+    assert.equal(res.json().error.code, "unauthorized");
+  }
+  const cookie = await h.server.app.inject({ url: "/api/me", headers: { cookie: `st_session=${forged[0]}` } });
+  assert.equal(cookie.statusCode, 401);
+});

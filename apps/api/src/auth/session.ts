@@ -47,7 +47,9 @@ export function checkOrigin(ctx: Ctx, req: FastifyRequest, required: boolean) {
 
 function verify(ctx: Ctx, token: string): string {
   try {
-    const p = ctx.app.jwt.verify<{ sub?: string; exp?: number }>(token, { allowedIss: ISSUER, allowedAud: AUDIENCE, algorithms: ["HS256"] } as never);
+    const p = ctx.app.jwt.verify<{ sub?: string; exp?: number }>(token, {
+      allowedIss: ISSUER, allowedAud: AUDIENCE, algorithms: ["HS256"], requiredClaims: ["iss", "aud", "sub", "exp"],
+    } as never);
     if (typeof p.sub !== "string") throw new Error("no sub");
     if (typeof p.exp !== "number" || p.exp * 1000 <= ctx.now()) throw new Error("expired");
     return p.sub;
