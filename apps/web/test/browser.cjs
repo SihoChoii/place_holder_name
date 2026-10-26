@@ -128,7 +128,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     await page.getByText("Opening your sky", { exact: true }).waitFor();
     await page.locator(".sky-loading").waitFor({ state: "detached" });
     const readyMs = Date.now() - start;
-    assert.equal(await page.title(), "Stargaze");
+    assert.equal(await page.title(), "StarTagger");
     assert.equal(await page.locator("h1").innerText(), "Live sky");
     await page
       .getByText("Location unavailable or denied. Using Starbase.", {

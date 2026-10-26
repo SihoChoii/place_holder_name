@@ -72,7 +72,7 @@
 .app-shell { min-height: 100dvh; gap: 0; }
 .page-width { width: min(100%, 1512px); padding-inline: clamp(24px, 4.6vw, 72px); margin-inline: auto; }
 .site-header { display: flex; align-items: center; min-height: 88px; gap: 104px; }
-.wordmark { font-size: 26px; font-weight: 650; letter-spacing: -.045em; line-height: 1; text-decoration: none; }
+.wordmark { white-space: nowrap; flex-shrink: 0; font-size: 26px; font-weight: 650; letter-spacing: -.045em; line-height: 1; text-decoration: none; }
 .main-tabs { gap: 32px; }
 .catalog-main { padding-block: 52px 56px; }
 .catalog-main h1 { font-size: clamp(36px, 4vw, 56px); line-height: 1.12; letter-spacing: -.045em; font-weight: 600; margin: 0 0 36px; }
@@ -184,7 +184,8 @@
 /* Live explorer: the existing monochrome system, with scientific sky colors only. */
 :root { --sky-day: #16334d; --sky-twilight: #080c16; }
 .explorer-header { min-height: 84px; padding: 16px 32px; display: flex; align-items: center; gap: 56px; border-bottom: 1px solid var(--border); }
-.explorer-header .wordmark { display: inline-flex; align-items: center; gap: 10px; }
+.explorer-header .wordmark { display: inline-flex; align-items: center; gap: 10px; min-height: 48px; }
+.brand-symbol { display: block; width: 48px; height: 48px; flex-shrink: 0; }
 .explorer-header nav { display: flex; align-items: center; gap: 28px; }
 .explorer-header nav a { min-height: 44px; display: flex; align-items: center; border-bottom: 2px solid transparent; color: var(--muted-foreground); }
 .explorer-header nav a[aria-current="page"] { color: var(--foreground); border-color: var(--foreground); }
@@ -213,7 +214,7 @@
 .sky-loading h1 { font-size: 36px; font-weight: 600; letter-spacing: -.035em; }
 .sky-loading p { color: var(--muted-foreground); }
 .sky-loading a, .sky-unavailable a { text-decoration: underline; padding: 12px; }
-.loading-mark { font-size: 60px; line-height: 1; }
+.loading-mark { display: block; width: 64px; height: 64px; }
 .sky-controls { position: absolute; bottom: 24px; left: 32px; right: 32px; display: flex; align-items: center; justify-content: space-between; gap: 20px; pointer-events: none; }
 .camera-readout { display: flex; flex-wrap: wrap; gap: 24px; font-size: 14px; font-variant-numeric: tabular-nums; background: var(--background); padding: 10px 12px; }
 .camera-buttons { display: flex; gap: 8px; pointer-events: auto; }
@@ -288,7 +289,8 @@
 }
 @media (max-width:740px) {
   .explorer-header { padding: 12px 20px; gap: 16px; flex-wrap: wrap; }
-  .explorer-header .wordmark { font-size: 23px; }
+  .explorer-header .wordmark { font-size: 22px; gap: 8px; }
+  .brand-symbol { width: 40px; height: 40px; }
   .explorer-header nav { order: 3; width: 100%; gap: 28px; }
   .account-controls { gap: 8px; }
   .account-name { max-width: 110px; }

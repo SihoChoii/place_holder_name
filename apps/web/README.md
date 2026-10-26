@@ -1,4 +1,4 @@
-# Stargaze frontend
+# StarTagger frontend
 
 Live HYG v4.4 sky, a full accessible catalog, public star pages, and existing-account login/logout. Built on the existing Next.js 15, React 19, Tailwind 4, shadcn Base UI, and self-hosted Inter foundation. The sky and catalog do not wait for the account or community API. Community information requires the same-origin API; unavailable ownership is explicitly unknown.
 
@@ -57,6 +57,8 @@ Saved stars and notes are stored locally under `stargaze-reference-library-v1`. 
 `src/sky` owns observer state, astronomy, the SVG globe, canvas renderer, and pointer/keyboard picking. Projection and picking share one visible-point list. The render loop is outside React, pauses while hidden, caps DPR at two, and redraws for input or the live one-second clock. `src/lib/catalog.ts` loads the versioned asset once. `src/lib/api` validates actual shared schemas and caches public details. `src/features` composes auth, public details, approved posts, header, and credits.
 
 ## Design system
+
+Follow the [StarTagger brand guide](../../docs/brand/README.md). The shared header pairs the supplied compact LED star (48 px desktop, 40 px mobile) with live Inter 650 text. Loading uses the same static mark; content appears as soon as it is ready. The legacy favicon is retired pending a dedicated small-size asset from the guide. Internal package names and browser storage keys remain unchanged.
 
 Use the current primitives and semantic tokens as the foundation for new screens. Keep the interface flat, task-focused, and monochrome. Hierarchy comes from typography, spacing, selection, and a clear primary action. Avoid decorative badges, nested card grids, feature subtitles, gradients, glows, and background imagery.
 

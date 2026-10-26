@@ -6,8 +6,8 @@ import { SiteHeader } from "@/features/site-header";
 import { ObserverProvider } from "@/sky/observer";
 
 export const metadata: Metadata = {
-  title: "Stargaze",
-  description: "A simple way to explore the stars. Browse the catalog, save stars, and keep your observations.",
+  title: "StarTagger",
+  description: "Explore the stars, save your favorites, and keep your observations.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

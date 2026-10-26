@@ -120,9 +120,13 @@ export function SkyApp() {
         ) : null}
         {!ready && !catalog.error && (
           <div className="sky-loading" role="status">
-            <span className="loading-mark" aria-hidden="true">
-              ✦
-            </span>
+            <img
+              src="/brand/startagger-symbol-compact-white.svg"
+              alt=""
+              width={64}
+              height={64}
+              className="loading-mark"
+            />
             <h1>Opening your sky</h1>
             <p>
               {catalog.data

@@ -2,7 +2,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { StarIcon } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useSession } from "@/features/auth/session";
 
@@ -16,9 +15,15 @@ export function SiteHeader() {
         Skip to content
       </a>
       <header className="explorer-header">
-        <Link href="/" className="wordmark" aria-label="Stargaze home">
-          <StarIcon size={22} aria-hidden="true" />
-          Stargaze
+        <Link href="/" className="wordmark" aria-label="StarTagger home">
+          <img
+            src="/brand/startagger-symbol-compact-white.svg"
+            alt=""
+            width={48}
+            height={48}
+            className="brand-symbol"
+          />
+          StarTagger
         </Link>
         <nav aria-label="Main navigation">
           <Link href="/" aria-current={path === "/" ? "page" : undefined}>

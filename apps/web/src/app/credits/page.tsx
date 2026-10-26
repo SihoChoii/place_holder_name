@@ -8,7 +8,7 @@ export default function Page() {
       </Link>
       <h1>Credits &amp; about</h1>
       <p className="credits-intro">
-        Stargaze is the public sky explorer for Star Tagger.
+        Explore the stars, save your favorites, and keep your observations with StarTagger.
       </p>
       <CreditsContent />
     </main>

@@ -25,7 +25,7 @@ export function LoginPage() {
   return (
     <main id="main-content" className="login-main">
       <h1>Welcome back.</h1>
-      <p>Log in to your Star Tagger account.</p>
+      <p>Log in to your StarTagger account.</p>
       <form
         onSubmit={async (event) => {
           event.preventDefault();
@@ -86,7 +86,7 @@ export function LoginPage() {
               {show ? "Hide password" : "Show password"}
             </Button>
             <FieldDescription>
-              Use your existing Star Tagger account.
+              Use your existing StarTagger account.
             </FieldDescription>
           </Field>
           {error && (

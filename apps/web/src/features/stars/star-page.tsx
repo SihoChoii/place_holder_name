@@ -69,9 +69,9 @@ export function StarPage() {
   );
   const [copied, setCopied] = useState("");
   useEffect(() => {
-    if (star) document.title = `${star.name} · Stargaze`;
+    if (star) document.title = `${star.name} · StarTagger`;
     return () => {
-      document.title = "Stargaze";
+      document.title = "StarTagger";
     };
   }, [star]);
   if (id === null || (catalog.data && !star) || state.error?.status === 404)
@@ -106,7 +106,7 @@ export function StarPage() {
           </p>
           {isFresh(state) && apiStar?.claim && (
             <p className="muted-text">
-              Claimed {dateLabel(apiStar.claim.claimed_at)}. Star Tagger
+              Claimed {dateLabel(apiStar.claim.claimed_at)}. StarTagger
               ownership is a community claim.
             </p>
           )}

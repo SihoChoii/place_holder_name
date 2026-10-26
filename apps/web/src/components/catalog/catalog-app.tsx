@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Empty, EmptyContent, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Pagination, PaginationButton, PaginationContent, PaginationItem, PaginationNextButton, PaginationPreviousButton } from "@/components/ui/pagination";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -76,7 +76,10 @@ export function CatalogApp() {
           <div className="catalog-results">
             {catalog.error ? <div role="alert"><p>{catalog.error}</p><Button onClick={catalog.retry}>Retry catalog</Button></div> : !catalog.data ? <p role="status">Loading 8,920 catalog stars…</p> : pageStars.length > 0 ? <StarTable stars={pageStars} selectedId={selected?.id} saved={library.saved} onSelect={selectStar} onSave={toggleSaved} /> : (
               <Empty>
-                <EmptyHeader><EmptyTitle>{view === "saved" && !isFiltering ? "No saved stars yet" : "No stars found"}</EmptyTitle></EmptyHeader>
+                <EmptyHeader>
+                  <EmptyTitle>{view === "saved" && !isFiltering ? "No saved stars yet" : "No stars found"}</EmptyTitle>
+                  {view === "saved" && !isFiltering && <EmptyDescription>Save a star to find it here.</EmptyDescription>}
+                </EmptyHeader>
                 <EmptyContent><Button variant="outline" onClick={isFiltering ? resetFilters : () => switchView("catalog")}>{isFiltering ? "Clear filters" : "Browse catalog"}</Button></EmptyContent>
               </Empty>
             )}
