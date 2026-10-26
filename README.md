@@ -1,4 +1,4 @@
-# Stargaze / Star Tagger
+# Star Tagger
 
 Point an iPhone at the sky, claim a star, post a note/photo/link on it, and let friends react and comment.
 A companion website shows the same content; an AI star guide answers questions on both.
