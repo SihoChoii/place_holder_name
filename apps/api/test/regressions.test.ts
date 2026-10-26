@@ -267,3 +267,17 @@ test("process lock: a stale api.pid reused by an unrelated live process does not
   assert.equal(second.stderr.trim().split("\n").length, 1, second.stderr);
   assert.match(second.stderr, /^Another Star Tagger API is already using .+; stop it first\.\n$/);
 });
+
+test("link validation runs IPv4 embedded in IPv4-compatible, NAT64 and 6to4 IPv6 through the private checks", () => {
+  const rejected = [
+    "http://[::127.0.0.1]/", "http://[::7f00:1]/", "http://[::a00:1]/", "http://[::c0a8:101]/", "http://[::a9fe:a9fe]/",
+    "http://[64:ff9b::127.0.0.1]/", "http://[64:ff9b::7f00:1]/", "http://[64:ff9b::a9fe:a9fe]/", "http://[64:ff9b:0:0:0:0:c0a8:101]/",
+    "http://[64:ff9b:1::808:808]/", "http://[2002:7f00:1::]/", "http://[2002:c0a8:101::1]/",
+    "http://[::]/", "http://[::1]/", "http://[0:0:0:0:0:0:0:1]/", "http://[fd00::1]/", "http://[fe80::1]/", "http://[ff02::1]/",
+  ];
+  for (const url of rejected) assert.throws(() => validateLink(url), /private or loopback/, url);
+  for (const url of ["https://[::ffff:8.8.8.8]/", "https://[64:ff9b::8.8.8.8]/", "https://[::8.8.8.8]/", "https://[2002:808:808::1]/"]) {
+    assert.doesNotThrow(() => validateLink(url), url);
+  }
+  assert.equal(validateLink("https://[64:ff9b::8.8.8.8]/"), "https://[64:ff9b::808:808]/");
+});
