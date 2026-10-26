@@ -76,7 +76,7 @@ export function SiteHeader() {
               onFocus={() =>
                 setReturnTo(window.location.pathname + window.location.search)
               }
-              className={buttonVariants({ variant: "outline" })}
+              className={`${buttonVariants({ variant: "outline" })} header-signup`}
             >
               Sign up
             </Link>
