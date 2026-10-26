@@ -1,12 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { fork } from "node:child_process";
+import { fork, spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
 import { existsSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
-import { acquireProcessLock } from "../src/lib/lock.js";
+import { acquireProcessLock, ProcessLockError } from "../src/lib/lock.js";
 import { REPO_ROOT } from "../src/lib/paths.js";
 import { boundedToolResults, buildMessages, fitMessages, MODEL_INPUT_BUDGET } from "../src/guide/service.js";
 import { TOOL_SCHEMAS } from "../src/guide/tools.js";
@@ -28,7 +28,7 @@ test("process mutex: simultaneous startup has one owner; crash releases it; lose
     assert.equal(results.filter((r) => r.acquired).length, 1);
     const winner = children[results.findIndex((r) => r.acquired)];
     await Promise.all(children.filter((c) => c !== winner).map(async (c) => { const exit = once(c, "exit"); c.send("exit"); await exit; }));
-    assert.equal(readFileSync(join(dir, "api.pid"), "utf8"), String(winner.pid));
+    assert.equal(JSON.parse(readFileSync(join(dir, "api.pid"), "utf8")).pid, winner.pid);
     assert.throws(() => acquireProcessLock(db), /Another Star Tagger API/);
     const exited = once(winner, "exit");
     winner.kill("SIGKILL");
@@ -235,4 +235,35 @@ test("moderation loop survives thrown DB/adapter errors, logs them, and keeps pr
     assert.ok(logs.filter((m) => m === "moderation loop error").length >= 3, logs.join(","));
     assert.deepEqual(unhandled, []);
   } finally { await worker.stop(); }
+});
+
+test("process lock: a stale api.pid reused by an unrelated live process does not block; a duplicate start exits with one line", { timeout: 20_000 }, async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "stargaze-pid-"));
+  const db = join(dir, "db.sqlite");
+  const keep = "setTimeout(() => {}, 30000)";
+  const unrelated = spawn(process.execPath, ["-e", keep]);
+  const legacyApi = spawn(process.execPath, ["-e", keep, "--", "/srv/stargaze/apps/api/dist/index.js"]);
+  t.after(() => { unrelated.kill("SIGKILL"); legacyApi.kill("SIGKILL"); rmSync(dir, { recursive: true, force: true }); });
+  await new Promise((r) => setTimeout(r, 200));
+  const pidFile = join(dir, "api.pid");
+  for (const stale of [String(unrelated.pid), JSON.stringify({ app: "stargaze-api", pid: unrelated.pid, started_at: "2026-01-01T00:00:00Z", db })]) {
+    writeFileSync(pidFile, stale);
+    const release = acquireProcessLock(db);
+    assert.equal(JSON.parse(readFileSync(pidFile, "utf8")).pid, process.pid);
+    release();
+  }
+  writeFileSync(pidFile, String(legacyApi.pid)); // a live pre-mutex API still blocks
+  assert.throws(() => acquireProcessLock(db), (e) => e instanceof ProcessLockError && e.message.includes(`pid ${legacyApi.pid}`));
+  rmSync(pidFile);
+
+  const release = acquireProcessLock(db);
+  t.after(release);
+  const second = spawnSync(process.execPath, ["--import", "tsx", "src/index.ts"], {
+    cwd: join(REPO_ROOT, "apps/api"), encoding: "utf8", timeout: 15_000,
+    env: { ...process.env, DB_PATH: db, MEDIA_DIR: join(dir, "media"), JWT_SECRET: "test-secret-test-secret-test-secret-0123456789",
+      APP_ORIGIN: "http://localhost:3000", GUIDE_BASE_URL: "http://127.0.0.1:9", CLEF_BASE_URL: "http://127.0.0.1:9", PORT: "4999" },
+  });
+  assert.equal(second.status, 1);
+  assert.equal(second.stderr.trim().split("\n").length, 1, second.stderr);
+  assert.match(second.stderr, /^Another Star Tagger API is already using .+; stop it first\.\n$/);
 });

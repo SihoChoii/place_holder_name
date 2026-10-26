@@ -1,10 +1,17 @@
 import { loadConfig } from "./config.js";
 import { buildApp } from "./app.js";
-import { acquireProcessLock } from "./lib/lock.js";
+import { acquireProcessLock, ProcessLockError } from "./lib/lock.js";
 
 /** Process entry: one API process with one moderation loop. Stops cleanly on SIGINT/SIGTERM. */
 const config = loadConfig();
-const releaseLock = acquireProcessLock(config.dbPath);
+let releaseLock: () => void;
+try {
+  releaseLock = acquireProcessLock(config.dbPath);
+} catch (e) {
+  if (!(e instanceof ProcessLockError)) throw e;
+  console.error(e.message);
+  process.exit(1);
+}
 process.on("exit", releaseLock);
 const server = await buildApp(config, { background: true });
 const { app } = server;

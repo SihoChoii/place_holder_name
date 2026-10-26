@@ -42,7 +42,9 @@ pnpm start                 # foreground; Ctrl-C (SIGINT) or SIGTERM stops cleanl
 ```
 
 - One API process per data directory: a second start exits with "Another Star Tagger API …". A write lock on
-  `data/api.lock.sqlite` provides atomic process exclusion; `api.pid` is diagnostic/legacy compatibility.
+  `data/api.lock.sqlite` provides atomic process exclusion; `api.pid` is a diagnostic JSON marker
+  (`{app, pid, started_at, db}`) and never blocks startup by itself; a bare legacy PID blocks only while that PID is a live
+  Node API process. A second start prints one line (`Another Star Tagger API is already using …`) and exits 1.
   The mutex never locks the application database, and the OS releases it on process death.
 - Startup applies pending migrations, removes orphaned upload files older than 1 h, starts the moderation loop and
   background model probes. Unfinished moderation jobs persist in SQLite and resume automatically after restart.
