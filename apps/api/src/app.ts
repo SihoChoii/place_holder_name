@@ -142,7 +142,7 @@ export async function buildApp(config: Config, opts: BuildOptions = {}): Promise
           return reply.redirect(`/star?hyg_id=${Number(starAlias[1])}`, 302);
         }
         // A Next export has a separate HTML shell per route; index.html is not a router.
-        if (["/star", "/catalog", "/login", "/credits"].includes(path.replace(/\/$/, ""))) {
+        if (["/star", "/catalog", "/login", "/signup", "/credits"].includes(path.replace(/\/$/, ""))) {
           const file = `${path.replace(/^\//, "").replace(/\/$/, "")}.html`;
           if (existsSync(join(webDist, file))) return reply.sendFile(file);
         }

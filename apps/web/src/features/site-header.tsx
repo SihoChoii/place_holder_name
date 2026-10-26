@@ -55,6 +55,7 @@ export function SiteHeader() {
               </Button>
             </>
           ) : (
+            <>
             <Link
               href={`/login?returnTo=${encodeURIComponent(returnTo)}`}
               onPointerDown={() =>
@@ -67,6 +68,19 @@ export function SiteHeader() {
             >
               Log in
             </Link>
+            <Link
+              href={`/signup?returnTo=${encodeURIComponent(returnTo)}`}
+              onPointerDown={() =>
+                setReturnTo(window.location.pathname + window.location.search)
+              }
+              onFocus={() =>
+                setReturnTo(window.location.pathname + window.location.search)
+              }
+              className={buttonVariants({ variant: "outline" })}
+            >
+              Sign up
+            </Link>
+            </>
           )}
         </div>
       </header>

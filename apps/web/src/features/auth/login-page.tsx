@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { schemas, LIMITS } from "@stargaze/shared";
 import { Button } from "@/components/ui/button";
@@ -86,7 +87,7 @@ export function LoginPage() {
               {show ? "Hide password" : "Show password"}
             </Button>
             <FieldDescription>
-              Use your existing StarTagger account.
+              Use your StarTagger account.
             </FieldDescription>
           </Field>
           {error && (
@@ -99,6 +100,15 @@ export function LoginPage() {
           </Button>
         </FieldGroup>
       </form>
+      <p>
+        New here?{" "}
+        <Link
+          href={`/signup${params.get("returnTo") ? `?returnTo=${encodeURIComponent(params.get("returnTo") ?? "")}` : ""}`}
+          className="text-link"
+        >
+          Create an account
+        </Link>
+      </p>
     </main>
   );
 }
