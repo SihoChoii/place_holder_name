@@ -67,6 +67,11 @@ export interface StarOverlay { hyg_id: number; claim: ClaimInfo | null; tags: Ta
 export interface ViewContentResponse { stars: StarOverlay[]; server_time: number }
 export interface SearchResponse { stars: Star[]; tags: Tag[]; next_cursor: string | null }
 export interface PublicStarResponse { star: Star; tag_count: number; recent_tags: Tag[] }
+export interface ClaimedPreview {
+  type: "image" | "link" | "text"; thumb_url: string | null; title: string | null; excerpt: string | null; approved_count: number;
+}
+export interface ClaimedStar { hyg_id: number; owner: PublicUser; claimed_at: number; preview: ClaimedPreview | null }
+export interface ClaimedStarsResponse { stars: ClaimedStar[]; version: string; server_time: number }
 export interface ReactionResponse { tag_id: string; reaction_counts: Record<string, number>; my_reactions: string[] }
 export interface ChatMessage { role: "user" | "assistant"; content: string }
 export interface ChatRequest { messages: ChatMessage[]; mode: "local" | "explore"; scope_hyg_ids?: number[]; selected_hyg_id?: number | null }

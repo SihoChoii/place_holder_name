@@ -35,6 +35,13 @@ export function normalizeImage(input: string, output: string) {
   });
 }
 
+/** Hover-card derivative: WebP at most `width` px wide (never enlarged), written to `output`. */
+export function thumbnailImage(input: string, output: string, width: number = LIMITS.thumbWidth) {
+  return gate.run(async () => {
+    await sharp(input).resize({ width, withoutEnlargement: true }).webp({ quality: 78 }).toFile(output);
+  });
+}
+
 /** Moderation derivative: ≤ 1024 px long edge JPEG, base64 for /v1/systemone. */
 export function moderationImage(path: string, longEdge: number = LIMITS.moderationLongEdge) {
   return gate.run(async () =>

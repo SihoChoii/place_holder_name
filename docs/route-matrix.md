@@ -32,7 +32,8 @@ No route is `live-verified` yet: the Gemma/Clef hosts and a physical iPhone have
 | `GET /public/feed` | none | 12 | implemented |
 | `GET /public/search` | none | 12 | implemented |
 | `GET /public/tags/:id/comments` | none | 12 | implemented |
-| `GET /public/media/:id` | none | 12 | implemented |
+| `GET /public/media/:id` (`?size=thumb`) | none | 12 | implemented |
+| `GET /public/claimed` | none | 12 | implemented (ETag/304) |
 | `POST /agent/chat` | user | 13 | implemented |
 | `GET /health/live` | none | 02 | implemented |
 | `GET /health/ready` | none | 15 | implemented |

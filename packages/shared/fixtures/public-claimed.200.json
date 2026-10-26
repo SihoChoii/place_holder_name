@@ -1,0 +1,36 @@
+{
+  "stars": [
+    {
+      "hyg_id": 32263,
+      "owner": { "id": "7d0c5c55-2f0a-4c55-9a3e-0d1c6b0f2a11", "display_name": "Ada" },
+      "claimed_at": 1792965600000,
+      "preview": {
+        "type": "image",
+        "thumb_url": "/api/public/media/1b8e3f4a-6c2d-4e5f-8a9b-0c1d2e3f4a5b?size=thumb",
+        "title": "en.wikipedia.org",
+        "excerpt": "Sirius sparkling low over the hills tonight",
+        "approved_count": 3
+      }
+    },
+    {
+      "hyg_id": 90979,
+      "owner": { "id": "a3f1e2d4-5b6c-4d7e-8f90-1a2b3c4d5e6f", "display_name": "Grace" },
+      "claimed_at": 1792969200000,
+      "preview": { "type": "link", "thumb_url": null, "title": "nasa.gov", "excerpt": null, "approved_count": 1 }
+    },
+    {
+      "hyg_id": 27919,
+      "owner": { "id": "a3f1e2d4-5b6c-4d7e-8f90-1a2b3c4d5e6f", "display_name": "Grace" },
+      "claimed_at": 1792972800000,
+      "preview": { "type": "text", "thumb_url": null, "title": null, "excerpt": "Betelgeuse looking extra orange", "approved_count": 1 }
+    },
+    {
+      "hyg_id": 30365,
+      "owner": { "id": "7d0c5c55-2f0a-4c55-9a3e-0d1c6b0f2a11", "display_name": "Ada" },
+      "claimed_at": 1792976400000,
+      "preview": null
+    }
+  ],
+  "version": "q3Yc1T0mXo8vG2bL5sKw9A",
+  "server_time": 1792977000000
+}

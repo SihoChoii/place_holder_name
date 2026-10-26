@@ -20,4 +20,5 @@ check("search.200.json", SearchResponse.self); check("public-star.200.json", Pub
 for f in ["error.on-cooldown.429.json", "error.already-claimed.409.json", "error.idempotency-conflict.409.json", "error.not-found.404.json",
           "error.unauthorized.401.json", "error.validation.400.json", "error.guide-busy.503.json"] { check(f, APIErrorBody.self) }
 check("chat.request.json", ChatRequest.self)
+check("public-claimed.200.json", ClaimedStarsResponse.self)
 print("all fixtures decode")

@@ -215,9 +215,40 @@ Rate limit: posts + comments 20/min/user (`429 rate_limited`).
 | `GET /public/stars/:hyg_id/tags?cursor&limit` | `200 { items: Tag[], next_cursor }` full approved history |
 | `GET /public/search?q&cursor&limit` | same shape as `/explore/search` |
 | `GET /public/tags/:id/comments?cursor&limit` | `200 { items: Comment[], next_cursor }` |
-| `GET /public/media/:id` | image bytes; only approved media of approved posts |
+| `GET /public/media/:id?size=full\|thumb` | image bytes (WebP); only approved media of approved posts. `size` defaults to `full`; `thumb` is ≤ 320 px wide (never enlarged), generated on first request and cached. Other values → `400 validation_failed` |
+| `GET /public/claimed` | `200 ClaimedStarsResponse` (below); every claimed star, no paging (bounded by the 8,920-star catalog). Supports `If-None-Match` → `304` with an empty body |
 
 Public `Tag` objects omit `my_reactions` and `processing_state`; image URLs use `/api/public/media/:id`.
+
+#### `GET /public/claimed` (website sky)
+
+```jsonc
+{
+  "stars": [
+    {
+      "hyg_id": 32263,
+      "owner": { "id": "<uuid>", "display_name": "Ada" },       // PublicUser
+      "claimed_at": 1792965600000,                               // UTC ms
+      "preview": {                                               // null when the star has no approved post
+        "type": "image",                                         // "image" | "link" | "text"
+        "thumb_url": "/api/public/media/<id>?size=thumb",        // first approved image of the post, else null
+        "title": "en.wikipedia.org",                             // host name of its first link (never fetched), else null
+        "excerpt": "Sirius sparkling low over the hills",        // the post's note (≤ 140 code points), else null
+        "approved_count": 3                                      // approved, non-deleted posts on this star
+      }
+    }
+  ],
+  "version": "q3Yc1T0mXo8vG2bL5sKw9A",                         // opaque; equals the ETag without quotes
+  "server_time": 1792977000000
+}
+```
+
+- `preview` describes the star's **newest approved post**; `type` is `image` if that post has an approved image,
+  otherwise `link` if it has a link, otherwise `text`. Pending, rejected and deleted content never appears or counts.
+- Ordered by `claimed_at`, then `hyg_id`. Always the anonymous view: cookies and bearer tokens are ignored.
+- Headers: strong `ETag: "<version>"`, `Cache-Control: public, max-age=0, must-revalidate`. The version changes when
+  anything visible changes (a claim, an approval, a deletion, a rename) and not on pending activity. Poll with
+  `If-None-Match: <etag>` (e.g. every 30 s) and keep the cached body on `304`.
 
 ### Guide chat (SSE)
 
@@ -281,6 +312,7 @@ Fixtures: `chat.request.json`, `chat.stream.sse.txt`, `chat.stream-error.sse.txt
 | `comments.page.200.json`, `comment.create.201.json`, `reaction.200.json` | social |
 | `view-content.200.json` | overlay |
 | `search.200.json`, `public-star.200.json` | search / public star page |
+| `public-claimed.200.json` | `/public/claimed` |
 | `health-ready.200.json` | readiness |
 | `error.*.json` | error bodies |
 | `chat.request.json`, `chat.stream.sse.txt`, `chat.stream-error.sse.txt` | guide |

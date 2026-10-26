@@ -20,7 +20,7 @@ Updated 2026-10-25 17:27 PDT after the second review's open bugs were fixed (Nod
 | 09 Moderation | done (code) | pass | **pending** | — | — | Clef `/v1/systemone` adapter, 5-category policy v1, durable loop with 5/15/30/60 s backoff, CLI. Live: needs Clef host |
 | 10 First journey | **gate pending** | pass | pending | pending | pending | Passes end-to-end over real HTTP against the built API with the **fake** model server (`pnpm smoke`). Real gate needs Clef host + a client |
 | 11 Social | done | pass | pending | — | — | Comments (moderated), reactions, author deletion incl. cancel of in-flight jobs |
-| 12 Browse/public | done | pass | — | pending | — | Feed, search (escaped LIKE), all `/public/*` routes |
+| 12 Browse/public | done | pass | — | pending | — | Feed, search (escaped LIKE), all `/public/*` routes; `/public/claimed` (ETag/304) and `?size=thumb` thumbnails for the website sky |
 | 13 Guide | done (code) | pass | **pending** | pending | pending | Planner + ≤3 tools + streamed final; queue 1+2; 60 s deadline; disconnect cancel. Live: needs Gemma host |
 | 14 Clients | incomplete | — | — | pending | pending | `pnpm start` serves the Next.js export (`apps/web/out`) at `/`, but that page is a catalog reference that never calls `/api` (no login/claim/feed/guide yet); iOS is a scaffold. API transport and fixtures exist; product flow integration remains work |
 | 15 Operations | done (scripts) | pass | pending | — | — | setup/start/migrate/seed/smoke/models:check/moderation:*/db:backup/openapi + `docs/operations.md`; backup→restore drill passed; duplicate-process guard verified (stale PIDs ignored, one-line exit). Seed has no committed password. `models:check`/`smoke` against real hosts pending |

@@ -15,6 +15,7 @@ export const LIMITS = {
   maxImagePixels: 20_000_000,
   maxMultipartBytes: 22 * 1024 * 1024,
   normalizedLongEdge: 2048,
+  thumbWidth: 320,
   moderationLongEdge: 1024,
   linkMaxChars: 2048,
   viewContentMaxStars: 200,

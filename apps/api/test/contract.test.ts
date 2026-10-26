@@ -25,7 +25,7 @@ const FIXTURES: Record<string, object> = {
   "comment.create.201.json": schemas.CreateCommentResponse, "reaction.200.json": schemas.ReactionResponse,
   "view-content.200.json": schemas.ViewContentResponse, "search.200.json": schemas.SearchResponse,
   "public-star.200.json": schemas.PublicStarResponse, "health-ready.200.json": schemas.HealthReady,
-  "chat.request.json": schemas.ChatBody,
+  "chat.request.json": schemas.ChatBody, "public-claimed.200.json": schemas.ClaimedStarsResponse,
 };
 
 test("every shared fixture validates against its schema", () => {

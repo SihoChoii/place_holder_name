@@ -2281,6 +2281,19 @@
           {
             "schema": {
               "type": "string",
+              "enum": [
+                "full",
+                "thumb"
+              ],
+              "default": "full"
+            },
+            "in": "query",
+            "name": "size",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
               "format": "uuid"
             },
             "in": "path",
@@ -2291,6 +2304,122 @@
         "responses": {
           "200": {
             "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/public/claimed": {
+      "get": {
+        "tags": [
+          "public"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "stars",
+                    "version",
+                    "server_time"
+                  ],
+                  "properties": {
+                    "stars": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "hyg_id",
+                          "owner",
+                          "claimed_at",
+                          "preview"
+                        ],
+                        "properties": {
+                          "hyg_id": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "owner": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "display_name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "display_name": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "claimed_at": {
+                            "type": "integer",
+                            "description": "UTC Unix milliseconds"
+                          },
+                          "preview": {
+                            "type": "object",
+                            "required": [
+                              "type",
+                              "thumb_url",
+                              "title",
+                              "excerpt",
+                              "approved_count"
+                            ],
+                            "description": "The star's newest approved post",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "image",
+                                  "link",
+                                  "text"
+                                ]
+                              },
+                              "thumb_url": {
+                                "type": "string",
+                                "description": "/api/public/media/{id}?size=thumb (320 px wide WebP)",
+                                "nullable": true
+                              },
+                              "title": {
+                                "type": "string",
+                                "description": "Link host name (links are never fetched)",
+                                "nullable": true
+                              },
+                              "excerpt": {
+                                "type": "string",
+                                "maxLength": 140,
+                                "nullable": true
+                              },
+                              "approved_count": {
+                                "type": "integer",
+                                "description": "Approved, non-deleted posts on this star"
+                              }
+                            },
+                            "nullable": true
+                          }
+                        }
+                      }
+                    },
+                    "version": {
+                      "type": "string",
+                      "description": "Opaque; equals the strong ETag without quotes"
+                    },
+                    "server_time": {
+                      "type": "integer",
+                      "description": "UTC Unix milliseconds"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not modified (If-None-Match)"
           }
         }
       }

@@ -288,6 +288,41 @@ export const PublicStarResponse = {
   properties: { star: Star, tag_count: { type: "integer" }, recent_tags: { type: "array", items: Tag } },
 } as const;
 
+export const ClaimedPreview = {
+  type: "object",
+  required: ["type", "thumb_url", "title", "excerpt", "approved_count"],
+  description: "The star's newest approved post",
+  properties: {
+    type: { type: "string", enum: ["image", "link", "text"] },
+    thumb_url: nullable({ type: "string", description: "/api/public/media/{id}?size=thumb (320 px wide WebP)" }),
+    title: nullable({ type: "string", description: "Link host name (links are never fetched)" }),
+    excerpt: nullable({ type: "string", maxLength: LIMITS.noteMaxCodePoints }),
+    approved_count: { type: "integer", description: "Approved, non-deleted posts on this star" },
+  },
+} as const;
+
+export const ClaimedStar = {
+  type: "object",
+  required: ["hyg_id", "owner", "claimed_at", "preview"],
+  properties: { hyg_id: hygId, owner: PublicUser, claimed_at: ms, preview: nullable(ClaimedPreview) },
+} as const;
+
+export const ClaimedStarsResponse = {
+  type: "object",
+  required: ["stars", "version", "server_time"],
+  properties: {
+    stars: { type: "array", items: ClaimedStar },
+    version: { type: "string", description: "Opaque; equals the strong ETag without quotes" },
+    server_time: ms,
+  },
+} as const;
+
+export const MediaQuery = {
+  type: "object",
+  additionalProperties: false,
+  properties: { size: { type: "string", enum: ["full", "thumb"], default: "full" } },
+} as const;
+
 export const ChatMessage = {
   type: "object",
   required: ["role", "content"],

@@ -1,11 +1,16 @@
 import type { FastifyInstance } from "fastify";
-import { createReadStream } from "node:fs";
+import { createReadStream, existsSync } from "node:fs";
+import { rename, rm } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { join } from "node:path";
 import { LIMITS, schemas } from "@stargaze/shared";
 import type { Ctx } from "../context.js";
 import { badRequest } from "../lib/errors.js";
 import { PUBLIC, requireUser, type Viewer } from "../auth/session.js";
 import type { MediaStore } from "../media/store.js";
 import { travelTime } from "../catalog/index.js";
+import { thumbnailImage } from "../media/images.js";
+import { claimedStars, etagMatches } from "../services/claimed.js";
 import { claimStar, getStarOr404, parseIdempotencyKey, starView } from "../services/claims.js";
 import * as content from "../services/content.js";
 import { createTag, deleteTag } from "../services/tags.js";
@@ -143,8 +148,36 @@ export async function publicRoutes(app: FastifyInstance, { ctx, store }: { ctx: 
   app.get<{ Params: { id: string }; Querystring: Page }>("/public/tags/:id/comments", {
     schema: { tags: ["public"], params: idParam, querystring: schemas.PageQuery, response: { 200: schemas.CommentPage, ...err } },
   }, async (req) => content.listComments(ctx, PUBLIC, req.params.id, req.query));
-  app.get<{ Params: { id: string } }>("/public/media/:id", { schema: { tags: ["public"], params: idParam } }, async (req, reply) => {
+  app.get<{ Params: { id: string }; Querystring: { size: "full" | "thumb" } }>("/public/media/:id", {
+    schema: { tags: ["public"], params: idParam, querystring: schemas.MediaQuery },
+  }, async (req, reply) => {
     const f = content.mediaFile(ctx, PUBLIC, req.params.id);
-    return reply.header("content-type", f.mime).header("cache-control", "no-store").send(createReadStream(store.path(f.file_name)));
+    const path = req.query.size === "thumb" ? await thumbnail(store, f.file_name) : store.path(f.file_name);
+    return reply.header("content-type", f.mime).header("cache-control", "no-store").send(createReadStream(path));
   });
+  // Every claimed star with a preview, for the website sky. Anonymous by construction (never personalized),
+  // so it is publicly cacheable and revalidated with a strong ETag.
+  app.get("/public/claimed", {
+    schema: { tags: ["public"], response: { 200: schemas.ClaimedStarsResponse, 304: { type: "null", description: "Not modified (If-None-Match)" } } },
+  }, async (req, reply) => {
+    const { stars, version } = claimedStars(ctx);
+    const etag = `"${version}"`;
+    reply.header("etag", etag).header("cache-control", "public, max-age=0, must-revalidate");
+    if (etagMatches(req.headers["if-none-match"], etag)) return reply.code(304).send();
+    return { stars, version, server_time: ctx.now() };
+  });
+}
+
+/** Lazily derive and cache a thumbnail next to the originals (temp file + atomic rename). */
+async function thumbnail(store: MediaStore, fileName: string) {
+  const out = store.thumbPath(fileName);
+  if (existsSync(out)) return out;
+  const tmp = join(store.tmpDir, `${randomUUID()}.webp.part`);
+  try {
+    await thumbnailImage(store.path(fileName), tmp);
+    await rename(tmp, out);
+  } finally {
+    await rm(tmp, { force: true });
+  }
+  return out;
 }

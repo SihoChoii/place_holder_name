@@ -101,6 +101,14 @@ public struct StarOverlay: Codable, Hashable {
 public struct ViewContentResponse: Codable, Hashable { public let stars: [StarOverlay]; public let serverTime: Int64 }
 public struct SearchResponse: Codable, Hashable { public let stars: [Star]; public let tags: [Tag]; public let nextCursor: String? }
 public struct PublicStarResponse: Codable, Hashable { public let star: Star; public let tagCount: Int; public let recentTags: [Tag] }
+public struct ClaimedPreview: Codable, Hashable {
+    public enum Kind: String, Codable, Hashable { case image, link, text }
+    public let type: Kind; public let thumbUrl: String?; public let title: String?; public let excerpt: String?; public let approvedCount: Int
+}
+public struct ClaimedStar: Codable, Hashable {
+    public let hygId: Int; public let owner: PublicUser; public let claimedAt: Int64; public let preview: ClaimedPreview?
+}
+public struct ClaimedStarsResponse: Codable, Hashable { public let stars: [ClaimedStar]; public let version: String; public let serverTime: Int64 }
 
 public struct ChatMessage: Codable, Hashable {
     public enum Role: String, Codable, Hashable { case user, assistant }

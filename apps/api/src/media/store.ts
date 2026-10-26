@@ -1,18 +1,28 @@
-import { mkdirSync, readdirSync, statSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, statSync, rmSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import type { DB } from "@stargaze/db";
 
-/** Private media layout: <MEDIA_DIR>/<uuid>.webp (immutable) and <MEDIA_DIR>/tmp/ for in-flight uploads. */
+/**
+ * Private media layout: <MEDIA_DIR>/<uuid>.webp (immutable), <MEDIA_DIR>/thumbs/<uuid>.webp (derived, lazily
+ * created, same name as the original) and <MEDIA_DIR>/tmp/ for in-flight uploads and thumbnails.
+ */
 export class MediaStore {
   readonly tmpDir: string;
+  readonly thumbsDir: string;
   constructor(readonly dir: string) {
     this.tmpDir = join(dir, "tmp");
+    this.thumbsDir = join(dir, "thumbs");
     mkdirSync(this.tmpDir, { recursive: true });
+    mkdirSync(this.thumbsDir, { recursive: true });
   }
   path(fileName: string) {
     if (!/^[0-9a-f-]{36}\.webp$/.test(fileName)) throw new Error("invalid media file name");
     return join(this.dir, fileName);
+  }
+  thumbPath(fileName: string) {
+    this.path(fileName); // same name validation
+    return join(this.thumbsDir, fileName);
   }
   async removeAll(paths: string[]) {
     await Promise.all(paths.map((p) => rm(p, { force: true })));
@@ -30,6 +40,16 @@ export class MediaStore {
           rmSync(p, { force: true });
           removed++;
         }
+      }
+    }
+    // Thumbnails are derived: drop old ones whose original is gone or no longer referenced.
+    for (const f of readdirSync(this.thumbsDir)) {
+      const p = join(this.thumbsDir, f);
+      const st = statSync(p);
+      if (!st.isFile() || now - st.mtimeMs < maxAgeMs) continue;
+      if (!referenced.has(f) || !existsSync(join(this.dir, f))) {
+        rmSync(p, { force: true });
+        removed++;
       }
     }
     return removed;
