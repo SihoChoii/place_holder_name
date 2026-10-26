@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">StarTagger — Y2K outline</title>
+  <desc id="desc">A sharply stretched five-point star with a clean open center.</desc>
+  <path fill="#000000" d="M0 0h256v256H0z"/>
+  <g fill="#FFFFFF">
+<path fill-rule="evenodd" d="M 180.000 20.000 L 163.000 88.000 L 244.000 88.000 L 151.000 139.000 L 137.000 212.000 L 101.000 169.000 L 16.000 228.000 L 77.000 130.000 L 46.000 88.000 L 126.000 88.000 Z M 161.180 58.171 L 151.473 97.000 L 208.871 97.000 L 142.959 133.145 L 131.732 191.687 L 102.623 156.918 L 46.673 195.754 L 87.869 129.570 L 63.829 97.000 L 130.346 97.000 Z"/>
+  </g>
+</svg>
