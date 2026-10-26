@@ -62,10 +62,15 @@ export function createSummaryTools(options: SummaryToolsOptions = {}) {
   const get_wikipedia_summary = createWikipediaSummary({
     fetch: fetchImpl, timeoutMs: options.wikipediaTimeoutMs, userAgent: options.wikipediaUserAgent,
   });
-  const speak_summary = createSpeakSummary({
-    apiKey: options.xaiApiKey, voice: options.voice, language: options.language,
-    timeoutMs: options.speechTimeoutMs, fetch: fetchImpl,
-  });
+  let speech: ((text: string, signal?: AbortSignal) => Promise<SpeechAudio>) | undefined;
+  async function speak_summary(text: string, signal?: AbortSignal): Promise<SpeechAudio> {
+    // Optional speech configuration must not prevent Wikipedia or text-only use.
+    speech ??= createSpeakSummary({
+      apiKey: options.xaiApiKey, voice: options.voice, language: options.language,
+      timeoutMs: options.speechTimeoutMs, fetch: fetchImpl,
+    });
+    return speech(text, signal);
+  }
 
   async function summarize_star(
     name: string,
@@ -139,12 +144,15 @@ export function createSummaryTools(options: SummaryToolsOptions = {}) {
 
 /** Server-only environment configuration; no credentials enter tool arguments. */
 export function summaryOptionsFromEnv(env: NodeJS.ProcessEnv = process.env): SummaryToolsOptions {
+  const value = (name: string) => env[name]?.trim() || undefined;
+  const guideTimeout = value('GUIDE_TIMEOUT_MS');
+  const speechTimeout = value('XAI_TTS_TIMEOUT_MS');
   return {
-    guideBaseUrl: env.GUIDE_BASE_URL, guideModel: env.GUIDE_MODEL,
-    guideTimeoutMs: env.GUIDE_TIMEOUT_MS ? Number(env.GUIDE_TIMEOUT_MS) : undefined,
-    xaiApiKey: env.XAI_API_KEY, voice: env.XAI_TTS_VOICE,
-    language: env.XAI_TTS_LANGUAGE,
-    speechTimeoutMs: env.XAI_TTS_TIMEOUT_MS ? Number(env.XAI_TTS_TIMEOUT_MS) : undefined,
-    wikipediaUserAgent: env.WIKIPEDIA_USER_AGENT,
+    guideBaseUrl: value('GUIDE_BASE_URL'), guideModel: value('GUIDE_MODEL'),
+    guideTimeoutMs: guideTimeout ? Number(guideTimeout) : undefined,
+    xaiApiKey: value('XAI_API_KEY'), voice: value('XAI_TTS_VOICE'),
+    language: value('XAI_TTS_LANGUAGE'),
+    speechTimeoutMs: speechTimeout ? Number(speechTimeout) : undefined,
+    wikipediaUserAgent: value('WIKIPEDIA_USER_AGENT'),
   };
 }

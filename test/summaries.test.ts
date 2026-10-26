@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createSummaryTools, SummaryToolError } from '../src/guide/summaries.js';
+import { createSummaryTools, summaryOptionsFromEnv, SummaryToolError } from '../src/guide/summaries.js';
 
 const article = { title: 'Vega', extract: 'Vega is the brightest star in Lyra and lies 25 light-years away.' };
 const blurb = 'Meet Vega, the sparkling headliner of Lyra! Its light travels 25 years to reach us.';
@@ -84,4 +84,30 @@ test('cancellation during speech propagates rather than returning a successful t
 test('rejects an OpenAI-style Guide base before any outbound summary request', async () => {
   const tools = createSummaryTools({ ...guide, guideBaseUrl: 'http://gemma.test/v1', fetch: async () => { assert.fail('Invalid configuration must not call an API'); } });
   await assert.rejects(tools.summarize_star('Vega'), (error: unknown) => error instanceof SummaryToolError && error.code === 'invalid_input');
+});
+
+test('blank optional environment values use defaults instead of disabling summary tools', async () => {
+  const options = summaryOptionsFromEnv({
+    GUIDE_BASE_URL: guide.guideBaseUrl, GUIDE_MODEL: guide.guideModel,
+    XAI_API_KEY: 'test-key', XAI_TTS_VOICE: '', XAI_TTS_LANGUAGE: '  ', WIKIPEDIA_USER_AGENT: '',
+  });
+  const tools = createSummaryTools({ ...options, fetch: fixtureFetch() });
+  const result = await tools.summarize_star('Vega', { audio: true });
+  assert.equal(result.blurb, blurb);
+  assert.equal(result.audio?.mimeType, 'audio/mpeg');
+  assert.equal(result.speechError, undefined);
+});
+
+test('invalid optional speech configuration cannot break text-only use', async () => {
+  const tools = createSummaryTools({
+    ...guide, speechTimeoutMs: Number.NaN, xaiApiKey: 'test-key',
+    fetch: fixtureFetch({ onSpeech() { assert.fail('Invalid speech config must not reach xAI'); } }),
+  });
+  const article = await tools.get_wikipedia_summary('Vega');
+  assert.equal(article.title, 'Vega');
+  const text = await tools.summarize_star('Vega');
+  assert.equal(text.blurb, blurb);
+  const withAudio = await tools.summarize_star('Vega', { audio: true });
+  assert.equal(withAudio.blurb, blurb);
+  assert.equal(withAudio.speechError?.code, 'invalid_input');
 });

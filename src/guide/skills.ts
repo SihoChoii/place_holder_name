@@ -4,7 +4,7 @@ export interface Skill {
   text: string;
 }
 
-export const SKILLS: Skill[] = [
+const TOPIC_SKILLS: Skill[] = [
   {
     name: 'travel',
     match: /\b(travel|how long|get there|fly|reach|light.?years?)\b/i,
@@ -35,12 +35,12 @@ const WIKIPEDIA_SKILL: Skill = {
   text: 'Call get_wikipedia_summary with the star article name, then rewrite the returned extract into a short, fun blurb of 2 or 3 sentences, at most 80 words and 600 characters. Do not call speak_summary unless the user asks for audio.',
 };
 
-SKILLS.push(SPEECH_SKILL, WIKIPEDIA_SKILL);
+export const SKILLS: Skill[] = [...TOPIC_SKILLS, SPEECH_SKILL, WIKIPEDIA_SKILL];
 
 export const DEFAULT_SKILL = 'Describe the selected star in 2-3 sentences: what it is, how far, one interesting fact from the facts given. If no star is selected, ask which star the user means.';
 
-export function skillFor(lastUserMessage: string): string {
-  if (SPEECH_SKILL.match.test(lastUserMessage)) return SPEECH_SKILL.text;
-  if (WIKIPEDIA_SKILL.match.test(lastUserMessage)) return WIKIPEDIA_SKILL.text;
-  return SKILLS.find((skill) => skill.match.test(lastUserMessage))?.text ?? DEFAULT_SKILL;
+export function skillFor(lastUserMessage: string, options: { summaryTools?: boolean } = {}): string {
+  if (options.summaryTools && SPEECH_SKILL.match.test(lastUserMessage)) return SPEECH_SKILL.text;
+  if (options.summaryTools && WIKIPEDIA_SKILL.match.test(lastUserMessage)) return WIKIPEDIA_SKILL.text;
+  return TOPIC_SKILLS.find((skill) => skill.match.test(lastUserMessage))?.text ?? DEFAULT_SKILL;
 }

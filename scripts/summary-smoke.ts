@@ -63,8 +63,9 @@ try {
   assert.deepEqual(result.audio?.bytes, audio);
   assert.equal(result.audio?.mimeType, 'audio/mpeg');
   assert.equal(result.speechError, undefined);
-  assert.match(skillFor('Read the travel summary aloud'), /speak_summary/);
-  assert.match(skillFor('Give me a fun blurb about Vega'), /get_wikipedia_summary/);
+  assert.match(skillFor('Read the travel summary aloud', { summaryTools: true }), /speak_summary/);
+  assert.match(skillFor('Give me a fun blurb about Vega', { summaryTools: true }), /get_wikipedia_summary/);
+  assert.doesNotMatch(skillFor('Read the community posts aloud'), /speak_summary|get_wikipedia_summary/);
   console.log('Summary smoke passed over real HTTP: Wikipedia extract → Gemma rewrite → xAI binary audio. All three providers were local fixtures.');
 } finally {
   server.closeAllConnections();
