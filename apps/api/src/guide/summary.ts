@@ -4,8 +4,22 @@ import type { Ctx } from "../context.js";
 import type { Viewer } from "../auth/session.js";
 import { AppError, notFound } from "../lib/errors.js";
 import { SummaryToolError } from "./astral/summaries.js";
+import { ModelError } from "../models/http.js";
+import type { GemmaClient } from "../models/gemma.js";
 import type { GuideQueue } from "./service.js";
 import { wikipediaName } from "./tools.js";
+
+/** Blurb rewrite through the shared guide client (either API style), with model errors mapped to summary errors. */
+export async function rewriteWithGuide(gemma: GemmaClient, messages: { role: "system" | "user"; content: string }[], signal?: AbortSignal) {
+  try {
+    return (await gemma.chat({ messages, numPredict: 160, temperature: 0.3, signal })).content;
+  } catch (e) {
+    if (e instanceof ModelError && e.kind === "aborted") throw e;
+    throw e instanceof ModelError && e.kind === "timeout"
+      ? new SummaryToolError("timeout", "Gemma timed out")
+      : new SummaryToolError("upstream_error", "Gemma is unavailable");
+  }
+}
 
 const noSummary = () => notFound("No Wikipedia summary is available for this star.");
 const timedOut = () => new AppError(504, "guide_timeout", "The summary took too long.");

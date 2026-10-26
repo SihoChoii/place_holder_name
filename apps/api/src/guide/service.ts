@@ -117,17 +117,18 @@ const TOOL_ARGS: Record<string, readonly string[]> = Object.fromEntries(
 
 /** Echo of the planner turn with bounded size: no free text, known tool names, numeric known arguments only. */
 function finalSuffix(calls: OllamaToolCall[], texts: string[]): OllamaMessage[] {
-  const clean = calls.map((c) => {
+  const clean = calls.map((c, i) => {
     const name = TOOL_ARGS[c.function?.name] ? c.function.name : "unknown";
     const raw = c.function?.arguments;
     const args = (typeof raw === "string" ? (() => { try { return JSON.parse(raw); } catch { return {}; } })() : raw) ?? {};
     const kept = Object.fromEntries((TOOL_ARGS[name] ?? []).flatMap((k) =>
       typeof args[k] === "number" && Number.isFinite(args[k]) ? [[k, args[k]]] : []));
-    return { function: { name, arguments: kept } };
+    // Arguments as a JSON string and both tool_call_id/tool_name: measures the larger of the two wire forms.
+    return { id: `call_${i}`, type: "function" as const, function: { name, arguments: JSON.stringify(kept) } };
   });
   return [
     { role: "assistant", content: "", tool_calls: clean },
-    ...clean.map((c, i) => ({ role: "tool" as const, tool_name: c.function.name, content: texts[i] })),
+    ...clean.map((c, i) => ({ role: "tool" as const, tool_call_id: c.id, tool_name: c.function.name, content: texts[i] })),
   ];
 }
 

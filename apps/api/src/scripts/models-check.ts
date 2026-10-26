@@ -6,7 +6,7 @@ import { loadConfig } from "../config.js";
 import { fromRoot } from "../lib/paths.js";
 import { ClefClient } from "../models/clef.js";
 import { GemmaClient } from "../models/gemma.js";
-import { listModels, ollamaVersion } from "../models/http.js";
+import { modelIdentity } from "../models/http.js";
 import { CATEGORIES, POLICY_VERSION, questionsFor, verdict, type Category } from "../moderation/policy.js";
 import { TOOL_SCHEMAS } from "../guide/tools.js";
 
@@ -30,16 +30,15 @@ async function check(name: string, fn: () => Promise<string | void>) {
 }
 
 const lock: Record<string, unknown> = { checked_at: new Date().toISOString(), policy_version: POLICY_VERSION };
-const gemma = new GemmaClient(config.guide.baseUrl, config.guide.model, 120_000, config.guide.think);
-const clef = new ClefClient(config.clef.baseUrl, config.clef.model, 120_000);
+const gemma = new GemmaClient(config.guide.baseUrl, config.guide.model, 120_000, config.guide.think,
+  { style: config.guide.apiStyle, apiKey: config.guide.apiKey });
+const clef = new ClefClient(config.clef.baseUrl, config.clef.model, 120_000, config.clef.apiKey);
 
-for (const [role, base, model] of [["guide", config.guide.baseUrl, config.guide.model], ["moderation", config.clef.baseUrl, config.clef.model]] as const) {
-  await check(`${role}: Ollama reachable and model ${model} present`, async () => {
-    const version = await ollamaVersion(base);
-    const tag = (await listModels(base)).find((m) => m.name === model || m.model === model);
-    if (!tag) throw new Error(`model ${model} not pulled on ${role} host (ollama pull ${model})`);
-    lock[role] = { ollama_version: version, model, digest: tag.digest, size_bytes: tag.size };
-    return `ollama ${version}, digest ${tag.digest.slice(0, 19)}…`;
+for (const [role, c] of [["guide", config.guide], ["moderation", config.clef]] as const) {
+  await check(`${role}: ${c.apiStyle} host reachable and model ${c.model} present`, async () => {
+    const id = await modelIdentity(c.apiStyle, c.baseUrl, c.model, c.apiKey);
+    lock[role] = id;
+    return id.ollama_version ? `ollama ${id.ollama_version}, digest ${id.digest?.slice(0, 19)}…` : `openai-style, ${c.model} listed${id.digest ? `, digest ${id.digest.slice(0, 19)}…` : ""}`;
   });
 }
 
