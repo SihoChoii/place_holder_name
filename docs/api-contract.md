@@ -10,9 +10,10 @@ example payloads in `packages/shared/fixtures/`.
 ## Conventions
 
 - **Base URL.** Every route below is under `/api`. One origin serves both the website and the API:
-  Fastify (default `0.0.0.0:4000`) serves `/api/*` and, when `apps/web/dist` exists, the built SPA with an
-  `index.html` fallback for any other GET. Web uses relative `/api/...` URLs; during development the Vite dev
-  server proxies `/api` to `http://<host>:4000`. iOS uses a configurable base such as `http://<backend-lan-host>:4000`
+  Fastify (default `0.0.0.0:4000`) serves `/api/*` and, when `apps/web/out/index.html` exists (the Next.js static
+  export written by `pnpm build`), the website with an `index.html` fallback for any other non-`/api` GET.
+  Web uses relative `/api/...` URLs; during development the Next.js dev server (`localhost:3000`) rewrites `/api` to
+  `API_UPSTREAM` (default `http://127.0.0.1:4000`). Every browser origin must be listed in `APP_ORIGIN`. iOS uses a configurable base such as `http://<backend-lan-host>:4000`
   (never `localhost` on the phone).
 - **IDs** are UUIDv4 strings. **Star IDs** (`hyg_id`) are integers from the pinned catalog
   `hyg-4.4-mag6.5-20261025` (`catalog/stars.json`, 8,920 stars). Unknown star IDs are rejected.

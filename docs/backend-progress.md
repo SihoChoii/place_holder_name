@@ -4,7 +4,7 @@ Verification columns: **auto** = automated tests (`pnpm test`: temp DB/media, fa
 `apps/api/test/fixtures/`), **live** = real Gemma/Clef hosts, **browser** = real browser through the one origin,
 **iphone** = physical iPhone. `—` = not applicable. `pending` = not run yet (dependency in Notes).
 
-Updated 2026-10-25 after backend review repairs (Node v24.2.0, pnpm 9.15.0, macOS 26.5 arm64).
+Updated 2026-10-25 17:27 PDT after the second review's open bugs were fixed (Node v24.2.0, pnpm 9.15.0, macOS 26.5 arm64).
 
 | Step | Status | auto | live | browser | iphone | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -22,8 +22,8 @@ Updated 2026-10-25 after backend review repairs (Node v24.2.0, pnpm 9.15.0, macO
 | 11 Social | done | pass | pending | — | — | Comments (moderated), reactions, author deletion incl. cancel of in-flight jobs |
 | 12 Browse/public | done | pass | — | pending | — | Feed, search (escaped LIKE), all `/public/*` routes |
 | 13 Guide | done (code) | pass | **pending** | pending | pending | Planner + ≤3 tools + streamed final; queue 1+2; 60 s deadline; disconnect cancel. Live: needs Gemma host |
-| 14 Clients | incomplete | — | — | pending | pending | Current web is a Next.js catalog reference; iOS is a scaffold. API transport and fixtures exist; product flow integration remains work |
-| 15 Operations | done (scripts) | pass | pending | — | — | setup/start/migrate/seed/smoke/models:check/moderation:*/db:backup/openapi + `docs/operations.md`; backup→restore drill passed; duplicate-process guard verified. `models:check`/`smoke` against real hosts pending |
+| 14 Clients | incomplete | — | — | pending | pending | `pnpm start` serves the Next.js export (`apps/web/out`) at `/`, but that page is a catalog reference that never calls `/api` (no login/claim/feed/guide yet); iOS is a scaffold. API transport and fixtures exist; product flow integration remains work |
+| 15 Operations | done (scripts) | pass | pending | — | — | setup/start/migrate/seed/smoke/models:check/moderation:*/db:backup/openapi + `docs/operations.md`; backup→restore drill passed; duplicate-process guard verified (stale PIDs ignored, one-line exit). Seed has no committed password. `models:check`/`smoke` against real hosts pending |
 | 16 Release | pending | — | pending | pending | pending | Needs model hosts, browser and phone on the LAN |
 
 ## Baseline (step 00, 15:31 PDT)
@@ -55,3 +55,26 @@ private API cache headers; locked model identity drift detection; dependency-awa
 IPv4-mapped IPv6 link rejection; and normalization-output cleanup. `pnpm typecheck` now covers web too.
 The expanded suite has 18 tests, including HTTP requests against the actual web export. Existing frontend edits
 were preserved. Live-model, full client-flow and physical-phone gates remain pending.
+
+## Second review fixes (2026-10-25, evening)
+
+Open items from the follow-up review, each with a regression test in `apps/api/test`:
+
+1. Session JWTs must carry `iss`, `aud`, `sub` and `exp` (`requiredClaims`); a secret-signed token without them gets 401.
+2. Model timeouts and the 60 s guide deadline return `504 guide_timeout` (JSON before streaming, SSE `error` after
+   `start`); a client disconnect still cancels quietly.
+3. The moderation loop catches unexpected DB/adapter errors, logs them, and retries with backoff (5 s doubling to 60 s);
+   it never produces an unhandled rejection.
+4. Requests rejected with `503 guide_busy` (or abandoned in the queue) do not count toward the 30/hour chat limit.
+5. `400 context_too_large` is decided before any model call (worst-case tool round reserved); after planning, the
+   final request fits by trimming older history and, if needed, shrinking tool results. Budget stays 2,800 bytes.
+6. `api.pid` is a JSON marker; a stale PID reused by an unrelated process no longer blocks startup; a duplicate start
+   prints one line and exits 1.
+7. Link validation also rejects private IPv4 embedded in IPv4-compatible (`[::127.0.0.1]`), NAT64
+   (`[64:ff9b::7f00:1]`, `64:ff9b:1::/48`) and 6to4 (`2002::/16`) literals; public embedded addresses stay allowed.
+8. Travel time accepts any finite positive speed (light-speed cap removed; `Infinity` rejected).
+9. `pnpm seed` uses `SEED_PASSWORD` (12–128 chars) or prints a random `generated_password` once.
+10. Contract/docs: the website is the Next.js export in `apps/web/out` (no Vite, no `apps/web/dist`); `.env.example`
+    `APP_ORIGIN` lists the LAN origin placeholder, `localhost:4000` and `localhost:3000`.
+
+Still not verified: real Gemma/Clef hosts, a browser journey with a wired web client, and the iPhone app.
