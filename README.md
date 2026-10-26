@@ -5,8 +5,9 @@ Stage 1 assets for **Star Tagger Place: Custom Harness Design Plan**, revised Oc
 ## Scope
 
 - `src/guide/prompt.ts`: standalone prompt text, not wired into the backend.
-- `src/guide/skills.ts`: one deterministic regex-selected travel, community, comparison, or default instruction, not wired.
+- `src/guide/skills.ts`: deterministic speech, Wikipedia, travel, community, comparison, or default instructions; the host opts into the new tools explicitly.
 - `harness/evals/`: twelve HTTP golden scenarios, an Ollama-native stand-in, stream fixtures, and evaluation tooling.
+- `src/guide/summaries.ts`: executable Wikipedia lookup, Gemma blurb rewriting, and xAI MP3 synthesis helpers, exported as `astral-harness/summaries`.
 
 The superseded Fastify plugin, OpenAI-compatible model client, extra SSE events, memory/cache, draft tools, moderation pipeline, and prewarming were removed. Old plugin imports and commands are intentionally unsupported. There is no compatibility shim and no backend migration.
 
@@ -19,11 +20,12 @@ npm ci
 npm run build
 npm test
 npm run smoke
+npm run smoke:summary
 ```
 
 The smoke uses local protocol fixtures and the stand-in. It is **not** a baseline against the shipped backend or proof of Gemma performance. See [verification evidence](docs/VERIFICATION.md) for observed results and missing prerequisites.
 
-Verified locally on Node v26.12.0: the build, all 13 tests, HTTP protocol smoke, and compiled smoke (`node dist/scripts/smoke.js`) pass. These are local tooling checks, not backend acceptance.
+Verified locally on Node v24.22.1: the build, all 34 tests, the original HTTP protocol smoke, and the new summary HTTP smoke (source and compiled) pass. The compiled Wikipedia helper also fetched the live Vega article successfully. Gemma rewriting and xAI audio were exercised with local HTTP fixtures, not live model/voice credentials.
 
 ## Prompt and skill exports
 
@@ -36,7 +38,24 @@ import { skillFor } from 'astral-harness/skills';
 const instruction = skillFor('How long to get there?');
 ```
 
-The system prompt is 56 words. Skill selection uses travel → community → compare → default precedence. Travel instructs a default of 17 km/s when no speed is supplied and requires stating constant speed without relativity. Importing these assets does not wire them into the backend.
+The system prompt is unchanged. After registering the new handlers, enable their instructions with `skillFor(message, { summaryTools: true })`: explicit speech and Wikipedia/blurb requests then take precedence over travel → community → compare → default. Without that opt-in, the original topic selection remains unchanged and never instructs the model to call unavailable summary tools. Travel still uses 17 km/s and states constant speed without relativity.
+
+## Wikipedia blurbs and spoken summaries
+
+```ts
+import { createSummaryTools, summaryOptionsFromEnv } from 'astral-harness/summaries';
+
+const tools = createSummaryTools(summaryOptionsFromEnv());
+const result = await tools.summarize_star('Vega', { audio: true });
+console.log(result.blurb, result.source.url);
+// result.audio is { bytes: Uint8Array, mimeType: 'audio/mpeg' }, or null.
+// The host delivers these bytes to its client; no new HTTP/SSE route is installed.
+```
+
+`get_wikipedia_summary(name)` returns the Wikipedia extract; the model rewrites it, rather than the lookup tool pretending to generate a blurb. `speak_summary(text)` calls the paid xAI voice API with the finished text. `summarize_star` connects the steps, defaults to text-only, and preserves the blurb if requested audio fails. No content-verification or trust-processing pipeline is added for this demo.
+
+See [summary skills](docs/SUMMARY_SKILLS.md) for configuration, direct helper calls, tool declarations, audio delivery, and errors.
+
 
 ## HTTP golden evaluations
 
@@ -97,6 +116,6 @@ Stage 1 files are reviewable deliverables, not active backend behavior. Siho dec
 
 Stage 2 only: wire prompt/skills into `buildMessages`, repair leaked/string tool calls, make one corrective retry, strip template tokens safely across stream chunks, offer no tools for an empty local scope, and add a selected-star catalog template on planner failure. None of those changes is wired here. Golden failures in these cases are meaningful baseline results, not a reason to weaken expectations.
 
-Deferred: blurb cache, sessions, xAI voice/speak routes, extra SSE events, extra/draft tools, relativistic travel, per-user concurrency cap. Moderation remains the backend's durable Clef job queue responsibility.
+Deferred: blurb cache, sessions, voice/speak HTTP routes, extra SSE events, draft tools, relativistic travel, per-user concurrency cap. The requested Wikipedia/voice helpers now exist as opt-in executable exports; registering them in the separately owned backend remains an explicit host integration. Moderation remains the backend's durable Clef job queue responsibility.
 
 See [architecture](docs/ARCHITECTURE.md) and [deployment/evaluation](docs/DEPLOYMENT.md).

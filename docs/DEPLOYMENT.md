@@ -84,4 +84,4 @@ For golden 10, stop the stand-in while leaving the backend running, unset `STAND
 
 Siho reviews Stage 1 text and decides merges. Do not wire these assets into `apps/api/src/guide/service.ts` before explicit Stage 2 approval and rebasing on `backend/api` after the other agent's fixes have been pushed. No old backend snapshot is an approved integration base.
 
-Blurb caches, sessions, voice/audio, additional tools/events, and per-user concurrency limits remain deferred. Do not infer approval from the presence of golden expectations for future behavior.
+Blurb caches, sessions, new audio routes/events, and per-user concurrency limits remain deferred. The requested Wikipedia and xAI voice helpers are now available as opt-in package exports, without modifying the backend or its frozen protocol. Computer 3 needs outbound internet access to Wikipedia and xAI; Gemma still runs over Tailscale using the native Ollama origin. Configure `XAI_API_KEY` only on the server. See [summary skills](SUMMARY_SKILLS.md) for the full setup and audio delivery contract.

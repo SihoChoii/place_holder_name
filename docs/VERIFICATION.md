@@ -1,4 +1,21 @@
-# Verification — Stage 1 cutover
+# Verification
+
+## Wikipedia and speech extension
+
+Observed on Node v24.22.1:
+
+| Check | Observed result | Boundary |
+| --- | --- | --- |
+| `npm run build` | Pass | Includes the exported summary tools and orchestration |
+| `npm test` | 34 tests passed | Existing protocol tests plus Wikipedia, speech, timeout/cancellation, response limits, summary failure paths, and optional speech configuration isolation |
+| `npm run smoke:summary` | Pass | Real loopback HTTP: Wikipedia extract → Gemma rewrite → raw xAI audio fixtures |
+| `npm run smoke` | Pass | Existing protocol smoke remains unchanged |
+| `node dist/scripts/summary-smoke.js` | Pass | Compiled summary flow exercises the same real HTTP fixture path |
+| Compiled Wikipedia helper, `get_wikipedia_summary('Vega')` | Pass | Real Wikipedia REST endpoint returned the Vega title, extract and article URL |
+
+The environment had no `GUIDE_BASE_URL`, `GUIDE_MODEL`, or `XAI_API_KEY`. Live Gemma rewrite, paid xAI synthesis, playable audio, and integration into the external backend/client have not been verified. The summary smoke explicitly labels its provider responses as local fixtures.
+
+## Earlier Stage 1 cutover
 
 Observed locally on Node v26.12.0 (package requirement: Node >=24).
 

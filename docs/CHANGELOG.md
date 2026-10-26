@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-25 — Wikipedia blurbs and xAI speech
+
+- Add executable `get_wikipedia_summary(name)` and `speak_summary(text)` helpers, exported through `astral-harness/summaries`.
+- Add `summarize_star`: Wikipedia extract → one local Gemma rewrite → optional xAI MP3; keep text available if speech fails.
+- Add speech/Wikipedia instructions with explicit-request precedence and model tool declarations for host integration.
+- Keep this demo free of added content-verification/trust-processing machinery; retain bounded API I/O, cancellation, and explicit errors.
+- Add provider tests, real HTTP summary smoke, configuration and integration documentation. No backend routes, tables, or SSE events change.
+
 ## 2026-10-25 — Updated harness plan, Stage 1
 
 - Replace the superseded backend plugin with standalone prompt/skill review assets and HTTP evaluation tooling for the backend-owned guide.
