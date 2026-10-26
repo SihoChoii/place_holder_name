@@ -1,6 +1,38 @@
 import XCTest
 
 final class DeviceSkyTests: XCTestCase {
+  func testAuthModeSelector() throws {
+    continueAfterFailure = false
+    let app = XCUIApplication()
+    app.launch()
+    let account = app.buttons["Account and server"]
+    XCTAssertTrue(account.waitForExistence(timeout: 15))
+    account.tap()
+    let authenticate = app.buttons["Sign in or create account"]
+    XCTAssertTrue(authenticate.waitForExistence(timeout: 10), app.debugDescription)
+    authenticate.tap()
+    let signup = app.buttons["auth.signUp"]
+    XCTAssertTrue(signup.waitForExistence(timeout: 10), app.debugDescription)
+    signup.tap()
+    let name = app.textFields["Your name"]
+    let attachment = XCTAttachment(screenshot: app.screenshot())
+    attachment.name = "Auth after selecting Sign up"
+    attachment.lifetime = .keepAlways
+    add(attachment)
+    XCTAssertTrue(name.waitForExistence(timeout: 5), app.debugDescription)
+    XCTAssertTrue(signup.isSelected)
+    let email = app.textFields["you@example.com"]
+    email.tap()
+    email.typeText("selector-test@example.com")
+    app.buttons["auth.signIn"].tap()
+    XCTAssertFalse(name.exists)
+    signup.tap()
+    XCTAssertTrue(name.waitForExistence(timeout: 5), app.debugDescription)
+    XCTAssertEqual(email.value as? String, "selector-test@example.com")
+    app.buttons["Close"].tap()
+    app.buttons["Done"].tap()
+  }
+
   func testConfigureBackendAndReadPublicStar() throws {
     guard ProcessInfo.processInfo.environment["RUN_IOS_BACKEND_SETUP"] == "1",
       let origin = ProcessInfo.processInfo.environment["TEST_API_ORIGIN"]

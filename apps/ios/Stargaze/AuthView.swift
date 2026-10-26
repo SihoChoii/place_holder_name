@@ -3,9 +3,11 @@ import SwiftUI
 struct AuthView: View {
   @EnvironmentObject var session: SessionStore
   @Environment(\.dismiss) private var dismiss
+  private enum AuthMode: Hashable { case signIn, signUp }
   private enum Field { case name, email, password }
   @FocusState private var focusedField: Field?
-  @State private var signup = false
+  @State private var mode = AuthMode.signIn
+  private var signup: Bool { mode == .signUp }
   @State private var showPassword = false
   @State private var email = ""
   @State private var password = ""
@@ -24,10 +26,13 @@ struct AuthView: View {
         VStack(alignment: .leading, spacing: 20) {
           Text(signup ? "Make the sky personal." : "Welcome back.").font(
             AppTheme.font(28, weight: .semibold, relativeTo: .title))
-          Picker("Account action", selection: $signup) {
-            Text("Sign in").tag(false)
-            Text("Sign up").tag(true)
-          }.pickerStyle(.segmented)
+          HStack(spacing: 0) {
+            modeButton(.signIn, title: "Sign in")
+            modeButton(.signUp, title: "Sign up")
+          }
+          .overlay(Rectangle().stroke(AppTheme.border))
+          .accessibilityElement(children: .contain).accessibilityLabel("Account action")
+          .disabled(busy)
           if signup {
             VStack(alignment: .leading) {
               Text("Display name")
@@ -89,6 +94,23 @@ struct AuthView: View {
         }
     }
   }
+  private func modeButton(_ value: AuthMode, title: String) -> some View {
+    Button {
+      focusedField = nil
+      error = nil
+      mode = value
+    } label: {
+      Text(title).font(AppTheme.font(weight: .semibold))
+        .frame(maxWidth: .infinity, minHeight: 48)
+        .foregroundStyle(mode == value ? Color.black : Color.white)
+        .background(mode == value ? Color.white : AppTheme.overlay)
+        .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .accessibilityIdentifier(value == .signIn ? "auth.signIn" : "auth.signUp")
+    .accessibilityAddTraits(mode == value ? [.isSelected] : [])
+  }
+
   private func submit() async {
     guard !busy, canSubmit else { return }
     focusedField = nil
