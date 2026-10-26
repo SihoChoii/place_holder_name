@@ -107,7 +107,10 @@ export async function buildApp(config: Config, opts: BuildOptions = {}): Promise
 
   await app.register(async (api) => {
     // Covers personalized JSON, auth token issuance, and validation/auth error responses.
-    api.addHook("onRequest", async (_req, reply) => { reply.header("cache-control", "private, no-store"); });
+    // nosniff: user-supplied media and JSON are never reinterpreted by browsers as another type.
+    api.addHook("onRequest", async (_req, reply) => {
+      reply.header("cache-control", "private, no-store").header("x-content-type-options", "nosniff");
+    });
     await api.register(healthRoutes, { readiness });
     await api.register(authRoutes, { ctx });
     await api.register(publicRoutes, { ctx, store });

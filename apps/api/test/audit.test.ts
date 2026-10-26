@@ -28,6 +28,14 @@ test("link validation also rejects IPv4-translated (::ffff:0:a.b.c.d) private ad
   assert.equal(validateLink("http://[2606:4700::1111]/"), "http://[2606:4700::1111]/");
 });
 
+test("API responses carry X-Content-Type-Options: nosniff (user media, claimed list, errors)", async (t) => {
+  const h = await harness(); t.after(() => h.close());
+  for (const url of ["/api/public/claimed", `/api/public/media/${randomUUID()}?size=thumb`, "/api/me"]) {
+    const res = await h.server.app.inject({ url });
+    assert.equal(res.headers["x-content-type-options"], "nosniff", url);
+  }
+});
+
 test("public claimed scales linearly: 8,000 claims with posts build in well under a second", async (t) => {
   const h = await harness(); t.after(() => h.close());
   const db = h.server.ctx.db;
