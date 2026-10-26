@@ -1,0 +1,21 @@
+{
+  "name": "astral-harness",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "exports": {
+    ".": { "types": "./dist/src/guide/prompt.d.ts", "import": "./dist/src/guide/prompt.js" },
+    "./skills": { "types": "./dist/src/guide/skills.d.ts", "import": "./dist/src/guide/skills.js" },
+    "./summaries": { "types": "./dist/src/guide/summaries.d.ts", "import": "./dist/src/guide/summaries.js" }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "tsx --test test/*.test.ts",
+    "smoke": "tsx scripts/smoke.ts",
+    "smoke:summary": "tsx scripts/summary-smoke.ts",
+    "eval:standin": "tsx harness/evals/standin.ts",
+    "eval:golden": "tsx harness/evals/run.ts"
+  },
+  "devDependencies": { "@types/node": "^24.19.2", "tsx": "^4.23.15", "typescript": "^5.9.3" }
+}
