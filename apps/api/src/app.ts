@@ -121,7 +121,22 @@ export async function buildApp(config: Config, opts: BuildOptions = {}): Promise
   if (webDist && existsSync(join(webDist, "index.html"))) {
     await app.register(fastifyStatic, { root: webDist, wildcard: false, index: ["index.html"] });
     app.setNotFoundHandler((req, reply) => {
-      if (req.method === "GET" && !req.url.startsWith(`${API_PREFIX}/`)) return reply.sendFile("index.html");
+      const path = req.url.split("?")[0];
+      if (req.method === "GET" || req.method === "HEAD") {
+        const starAlias = /^\/star\/(\d+)\/?$/.exec(path);
+        if (starAlias && catalog.has(Number(starAlias[1]))) {
+          return reply.redirect(`/star?hyg_id=${Number(starAlias[1])}`, 302);
+        }
+        // A Next export has a separate HTML shell per route; index.html is not a router.
+        if (["/star", "/catalog", "/login", "/credits"].includes(path.replace(/\/$/, ""))) {
+          const file = `${path.replace(/^\//, "").replace(/\/$/, "")}.html`;
+          if (existsSync(join(webDist, file))) return reply.sendFile(file);
+        }
+        // Missing JS/data/media must be 404s, never HTML masquerading as an asset.
+        if (!path.startsWith(`${API_PREFIX}/`) && !path.includes(".")) {
+          return reply.code(404).sendFile("404.html");
+        }
+      }
       return reply.code(404).send({ error: { code: "not_found", message: "No such route." } });
     });
   } else {

@@ -3,6 +3,8 @@
 Point an iPhone at the sky, claim a star, post a note/photo/link on it, and let friends react and comment.
 A companion website shows the same content; an AI star guide answers questions on both.
 
+The implemented website deadline slice includes a live HYG sky, drag/zoom and star previews, observer presets/GPS fallback, public star details, existing-account login/logout, and a full accessible catalog. Signup, social writes, and the guide UI remain deferred. See the [frontend handoff](docs/frontend-execution.md) and [frontend runbook](apps/web/README.md).
+
 ```
 apps/
   api/     Fastify API (TypeScript, Node 24) — auth, claims, posts, moderation loop, guide SSE; serves the built website
@@ -47,7 +49,9 @@ Docs: [API contract](docs/api-contract.md) · [route matrix](docs/route-matrix.m
 | `pnpm dev:api` | API in watch mode (tsx) |
 | `pnpm dev` / `pnpm dev:api` | Turbo watches dependency sources, rebuilds emitted packages, then restarts affected development servers |
 | `pnpm typecheck` | TypeScript checks for shared, db, api (incl. tests), and web |
-| `pnpm test` | Build the actual website, then integration/regression tests using temp DB/media and fake model servers |
+| `pnpm test` | Build the actual website, frontend astronomy/contract tests, then API regression tests using temp DB/media and fake model servers |
+| `pnpm test:web` | Focused frontend astronomy and shared-contract checks |
+| `pnpm test:web:browser` | Playwright acceptance against the production export and real API in disposable storage; separately identified fixture UI cases |
 | `pnpm db:migrate` | Apply unapplied SQLite migrations (same DB from any working directory) |
 | `pnpm models:check [--write-lock]` | Real Gemma/Clef capability checks; `--write-lock` records digests in `docs/model-lock.json` |
 | `pnpm seed` | Demo users/claims/posts (`demo.*@example.com`); posts stay pending until real moderation |
@@ -65,4 +69,4 @@ Include that browser origin in `APP_ORIGIN`; custom upstreams can be set with `A
 Production serves both website and API on port 4000. Static export is the supported web build; server-only Next.js features require a different hosting arrangement.
 
 Readiness reports models as `unverified` until `pnpm models:check --write-lock` succeeds, and `drift` if a locked
-model tag/digest or Ollama version changes. Core API routes remain available. Web/iOS product flows and real-model/device acceptance remain incomplete; serving the catalog website does not complete those gates.
+model tag/digest or Ollama version changes. Core API routes remain available. The bounded web D0–D6 slice has its own browser evidence in the frontend handoff. Full ownership-index coverage, remaining web/iOS product flows, and real-model/physical-device acceptance remain separate incomplete gates.

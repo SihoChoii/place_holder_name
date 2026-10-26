@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Pagination, PaginationButton, PaginationContent, PaginationItem, PaginationNextButton, PaginationPreviousButton } from "@/components/ui/pagination";
@@ -12,7 +12,8 @@ import { StarTable } from "@/components/catalog/star-table";
 import { StarDetail } from "@/components/astronomy/star-detail";
 import { DataSources } from "@/components/catalog/data-sources";
 import { useLibrary } from "@/hooks/use-library";
-import { DEFAULT_STAR_ID, filterStars, PAGE_SIZE, type StarRecord } from "@/lib/star-catalog";
+import { DEFAULT_STAR_ID, PAGE_SIZE, type StarRecord } from "@/lib/star-catalog";
+import { useCatalog } from "@/lib/catalog";
 
 export function CatalogApp() {
   const [view, setView] = useState("catalog");
@@ -26,8 +27,18 @@ export function CatalogApp() {
   const returnFocus = useRef<HTMLElement | null>(null);
   const savedTab = useRef<HTMLButtonElement | null>(null);
   const library = useLibrary();
+  const catalog = useCatalog();
 
-  const filtered = filterStars({ query, constellation, sort }).filter((star) => view !== "saved" || library.saved.includes(star.id));
+  const filtered = useMemo(() => {
+    const normalize = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const needle = normalize(query.trim());
+    const numeric = /^(hyg|hip)?\s*(\d+)$/.exec(needle);
+    return (catalog.data?.stars ?? []).filter(star =>
+      (view !== "saved" || library.saved.includes(star.id)) &&
+      (constellation === "all" || constellation === star.constellationAbbr) &&
+      (!needle || (numeric ? numeric[1] === "hip" ? star.hipId === Number(numeric[2]) : star.id === Number(numeric[2]) || (!numeric[1] && star.hipId === Number(numeric[2])) : normalize(`${star.name} ${star.bayerLabel ?? ""} ${star.constellation} ${star.constellationAbbr}`).includes(needle)))
+    ).sort((a,b) => sort === "name" ? a.name.localeCompare(b.name) : a.magnitude-b.magnitude);
+  }, [catalog.data,query,constellation,sort,view,library.saved]);
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
   const pageStars = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -61,9 +72,9 @@ export function CatalogApp() {
       <h1>{view === "saved" ? "Saved stars" : "Star catalog"}</h1>
       <div className="catalog-layout" data-empty={!selected || undefined}>
         <section className="catalog-list" aria-label={view === "saved" ? "Saved stars" : "Star catalog"}>
-          <CatalogToolbar query={query} constellation={constellation} sort={sort} onQuery={(value) => { setQuery(value); setPage(1); }} onConstellation={(value) => { setConstellation(value); setPage(1); }} onSort={(value) => { setSort(value); setPage(1); }} />
+          <CatalogToolbar constellations={catalog.data?.constellations} query={query} constellation={constellation} sort={sort} onQuery={(value) => { setQuery(value); setPage(1); }} onConstellation={(value) => { setConstellation(value); setPage(1); }} onSort={(value) => { setSort(value); setPage(1); }} />
           <div className="catalog-results">
-            {pageStars.length > 0 ? <StarTable stars={pageStars} selectedId={selected?.id} saved={library.saved} onSelect={selectStar} onSave={toggleSaved} /> : (
+            {catalog.error ? <div role="alert"><p>{catalog.error}</p><Button onClick={catalog.retry}>Retry catalog</Button></div> : !catalog.data ? <p role="status">Loading 8,920 catalog stars…</p> : pageStars.length > 0 ? <StarTable stars={pageStars} selectedId={selected?.id} saved={library.saved} onSelect={selectStar} onSave={toggleSaved} /> : (
               <Empty>
                 <EmptyHeader><EmptyTitle>{view === "saved" && !isFiltering ? "No saved stars yet" : "No stars found"}</EmptyTitle></EmptyHeader>
                 <EmptyContent><Button variant="outline" onClick={isFiltering ? resetFilters : () => switchView("catalog")}>{isFiltering ? "Clear filters" : "Browse catalog"}</Button></EmptyContent>
@@ -74,7 +85,7 @@ export function CatalogApp() {
             <Pagination className="catalog-pagination" aria-label="Catalog pages">
               <PaginationContent>
                 <PaginationItem><PaginationPreviousButton disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} /></PaginationItem>
-                {Array.from({ length: pageCount }, (_, i) => i + 1).map((number) => <PaginationItem key={number} className="desktop-page-number"><PaginationButton isActive={number === currentPage} aria-label={`Page ${number}`} onClick={() => setPage(number)}>{number}</PaginationButton></PaginationItem>)}
+                {[...new Set([1, currentPage - 1, currentPage, currentPage + 1, pageCount])].filter(number => number > 0 && number <= pageCount).sort((a,b)=>a-b).map((number) => <PaginationItem key={number} className="desktop-page-number"><PaginationButton isActive={number === currentPage} aria-label={`Page ${number}`} onClick={() => setPage(number)}>{number}</PaginationButton></PaginationItem>)}
                 <PaginationItem className="mobile-page-status"><span aria-label={`Page ${currentPage} of ${pageCount}`}>{currentPage} / {pageCount}</span></PaginationItem>
                 <PaginationItem><PaginationNextButton disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)} /></PaginationItem>
               </PaginationContent>
@@ -90,7 +101,6 @@ export function CatalogApp() {
     <Tabs value={view} onValueChange={switchView} className="app-shell">
       <a href="#main-content" className="skip-link">Skip to catalog</a>
       <header className="site-header page-width">
-        <a href="/" className="wordmark" aria-label="Stargaze home">Stargaze</a>
         <TabsList variant="line" className="main-tabs" aria-label="Browse stars"><TabsTrigger value="catalog">Catalog</TabsTrigger><TabsTrigger value="saved" ref={savedTab}>Saved</TabsTrigger></TabsList>
       </header>
       <Separator />

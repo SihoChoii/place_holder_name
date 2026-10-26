@@ -1,6 +1,6 @@
-# Stargaze frontend reference
+# Stargaze frontend
 
-A working catalog reference for the monochrome design system. Built with Next.js, React, the official shadcn Base UI components, and self-hosted Inter. No API or account setup is required for this sample.
+Live HYG v4.4 sky, a full accessible catalog, public star pages, and existing-account login/logout. Built on the existing Next.js 15, React 19, Tailwind 4, shadcn Base UI, and self-hosted Inter foundation. The sky and catalog do not wait for the account or community API. Community information requires the same-origin API; unavailable ownership is explicitly unknown.
 
 ## Run
 
@@ -8,10 +8,10 @@ From the repository root:
 
 ```sh
 pnpm install
-pnpm dev:web
+pnpm dev
 ```
 
-The normal development port is 3000. To run alongside another frontend:
+The normal development port is 3000. For catalog/sky-only development, `pnpm dev:web` works without an API; account and community failures remain visible. To run alongside another frontend after generating the catalog with `pnpm --filter @stargaze/web exec node scripts/catalog.mjs`:
 
 ```sh
 pnpm --filter @stargaze/web exec next dev --hostname 127.0.0.1 --port 3100
@@ -22,13 +22,27 @@ For backend development use root `pnpm dev`: `/api` on the Next.js origin proxie
 Root `pnpm build` produces the Next.js static export in `apps/web/out`; root `pnpm start` serves the export
 and API together on port 4000. The package's `start` command delegates to that root startup.
 
-## Reference flows
+If the optional LAN model hosts are unavailable, the read-only frontend can run with moderation disabled. With dependencies and the existing `.env`/JWT secret prepared:
 
-- Search by star name or constellation; filter by constellation and sort by brightness or name.
-- Browse three pages of catalog records and select a star to inspect its coordinates and constellation.
+```sh
+pnpm build
+GUIDE_BASE_URL=http://127.0.0.1:9 CLEF_BASE_URL=http://127.0.0.1:9 MODERATION_ENABLED=false APP_ORIGIN=http://127.0.0.1:4000,http://localhost:4000 pnpm start
+```
+
+Those model addresses are deliberately unavailable; this does not simulate successful inference or approve content. Use configured real hosts for moderation/guide verification. Restart the API after rebuilding because its static file routes are registered at startup.
+
+## Working flows
+
+- `/`: live time and observer sky; drag, wheel/pinch zoom, hover/tap preview, and keyboard arrows/+/-/Enter/Escape. Daylight reduces visible stars; choose a currently dark preset to explore a night sky at the same live time.
+- The Earth globe shows the current observer and a rectangular heading/FOV indicator. Starbase, Greenwich, Paranal, custom coordinates, and explicit GPS retry are available. One initial location request is nonblocking, with provisional Starbase and denial/timeout fallback. A manual selection wins over late GPS.
+- `/star?hyg_id=32263`: real catalog facts, current public ownership, approved posts/media/comments, Find in sky, and a shareable URL. `/star/32263` redirects to that single exported shell. Invalid query IDs show an in-page not-found state (HTTP 200 shell); invalid clean aliases return HTTP 404.
+- `/login`: existing accounts, same-origin HttpOnly session cookie, return to the original star, and logout. No token is persisted in browser storage. Signup and social writes are deferred.
+- `/catalog`: all 8,920 records, search by name/HYG/HIP/constellation, 88 constellation filters, brightness/name sorting, bounded paging, and keyboard-accessible details.
 - Save and unsave stars. Add, edit, or delete a personal note.
 - On narrow screens, inspect a star in a modal sheet with keyboard focus restoration.
-- Open Data sources for catalog provenance and license attribution.
+- `/credits` and the existing Data sources dialog share attribution and scientific limitations.
+
+The API has no complete public claims index. Unchecked, failed, expired, or version-mismatched ownership is **unknown**. A selected/previewed star is checked using `/api/public/stars/:hyg_id`; confirmed unclaimed stars have one ring and confirmed claimed stars two. Feed absence is never treated as unclaimed. Selected public details poll every five seconds while visible; ownership cache freshness is bounded to 15 seconds.
 
 Saved stars and notes are stored locally under `stargaze-reference-library-v1`. They are browser-specific and do not sync to an account. If storage is unavailable, the same controls work for the current session.
 
@@ -39,6 +53,8 @@ Saved stars and notes are stored locally under `stargaze-reference-library-v1`. 
 `src/components/ui` contains official shadcn Base UI sources adapted centrally to the system. `Button` adds a row variant; `Pagination` adds native button variants for local pagination. Dialogs, sheets, tabs, selects, fields, tables, empty states, and inputs retain their library behavior.
 
 `src/components/catalog` composes the catalog shell, toolbar, table, and source dialog. `src/components/astronomy` contains the reusable selected-star detail and code-rendered constellation diagram. `src/hooks/use-library.ts` owns validated local persistence.
+
+`src/sky` owns observer state, astronomy, the SVG globe, canvas renderer, and pointer/keyboard picking. Projection and picking share one visible-point list. The render loop is outside React, pauses while hidden, caps DPR at two, and redraws for input or the live one-second clock. `src/lib/catalog.ts` loads the versioned asset once. `src/lib/api` validates actual shared schemas and caches public details. `src/features` composes auth, public details, approved posts, header, and credits.
 
 ## Design system
 
@@ -92,23 +108,30 @@ The page caps at 1512 px with responsive gutters. At 1000 px and below, selected
 
 Build domain components by composing the local shadcn primitives; change their shared variants centrally rather than restyling each instance. Keep data, formatting, persistence, and presentation separate.
 
-For astronomy diagrams, use source-backed coordinates and geometry, consistent units, explicit provenance, accessible titles, and a suitable projection. Use neutral lines, marker shapes, and selected rings instead of decorative star fields or color-only encoding. Future live sky views need actual observer/time/sensor context; the current constellation diagram is a catalog reference.
+For astronomy diagrams, use source-backed coordinates and geometry, consistent units, explicit provenance, accessible titles, and a suitable projection. Use neutral lines, marker shapes, and selected rings instead of decorative star fields or color-only encoding. Keep the existing constellation reference separate from the live observer-position sky.
 
 For denser data, adjust spacing and column disclosure before reducing text size. Keep numeric alignment, units, missing-value treatment, sorting, and selection consistent. For new forms, reuse the input and field contracts, inline validation, and deliberate primary/secondary actions.
 
-[shadcn Base UI](https://ui.shadcn.com/docs/components/base/pagination) supplies the reusable controls. Reserve [ObsidianUI Text Stream](https://www.obsidianui.dev/docs/text-stream) for a future surface that actually presents streamed content; it is not added to this static catalog. Measurements, navigation, and object names remain stationary. Build and verify the interface directly in code; do not use Image Gen for this reference or its UI extensions.
+[shadcn Base UI](https://ui.shadcn.com/docs/components/base/pagination) supplies the reusable controls. [ObsidianUI Text Stream](https://www.obsidianui.dev/docs/text-stream) is a scroll-driven text reel, not an incremental AI-answer renderer; it is not installed. Measurements, navigation, and object names remain stationary. Build and verify the interface directly in code; do not use Image Gen for its UI extensions.
 
 ## Data
 
-`src/lib/star-catalog.ts` contains 24 real named stars and the relevant constellation geometry extracted from the repository's catalog bundle. RA/Dec use J2000. The map uses a centered stereographic projection, north up and east left; it is a constellation reference rather than a live observer-position sky view.
+`scripts/catalog.mjs` verifies the pinned `catalog/stars.json` SHA-256, 8,920 unique IDs, magnitude cutoff, Sun exclusion, and constellation endpoints. Build/dev generate `public/catalog/hyg-4.4-mag6.5-20261025.json` (1,148,587 bytes). Its compact tuples preserve units, estimates, attribution, and all 205 null distances. Catalog versions must match the API before joining ownership. No response fixtures are imported by production code.
+
+RA/Dec are J2000 degrees. The live sky applies IAU 1976 precession, sidereal rotation, geometric altitude/azimuth, and perspective projection. The Sun is approximate; there is no atmospheric refraction, proper motion, lunar/planet rendering, or measured 0.1° accuracy claim. `src/lib/star-catalog.ts` retains the original constellation reference geometry, north up/east left, for local saved-star details.
+
+`public/earth-land.json` is derived from Natural Earth's public-domain 1:110m land geometry; see the source and checksums in [the execution handoff](../../docs/frontend-execution.md). The globe rectangle is a heading/FOV schematic, not a geographic footprint.
 
 The derived data retains the catalog's CC BY-SA attribution. See `catalog/README.md` at the repository root. No generated images are used in the frontend.
 
 ## Validation
 
 ```sh
-pnpm --filter @stargaze/web exec tsc --noEmit
-pnpm --filter @stargaze/web build
+pnpm typecheck
+pnpm test
+pnpm test:web:browser
 ```
 
-When extending the reference, check both desktop and narrow layouts, keyboard focus, empty filters, long names, and persistent saved/note state. Keep actual data and labels in the interface; put feature explanations in documentation.
+The browser script needs installed Playwright and Chromium; use `PLAYWRIGHT_MODULE` and `BROWSER_EXECUTABLE` when they are provided outside the workspace, and `BROWSER_ARTIFACTS` for an existing evidence directory. It starts the actual built API/static export on a random loopback port with a disposable database. Genuine API login/claim/pending visibility cases are separated from explicit shared-fixture approved-media UI cases. No existing database is seeded or changed by this test.
+
+See [the execution handoff](../../docs/frontend-execution.md) for exact commands, evidence, and remaining full-product gates. When extending the app, check desktop/narrow layouts, focus, missing facts, failed APIs, and persistent saved/note state.
