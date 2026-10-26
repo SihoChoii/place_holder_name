@@ -19,6 +19,7 @@ import { ClefClient } from "./models/clef.js";
 import { GemmaClient } from "./models/gemma.js";
 import { ModerationWorker } from "./moderation/worker.js";
 import { GuideQueue } from "./guide/service.js";
+import { createSummaryTools } from "./guide/astral/summaries.js";
 import authRoutes from "./routes/auth.js";
 import agentRoutes from "./routes/agent.js";
 import healthRoutes, { Readiness } from "./routes/health.js";
@@ -35,6 +36,8 @@ export interface BuildOptions {
   background?: boolean;
   logger?: boolean | object;
   webDist?: string | null;
+  /** Injected fetch for the summary tools (tests point Wikipedia/xAI at fakes). */
+  summaryFetch?: typeof fetch;
 }
 
 export interface Server { app: FastifyInstance; ctx: Ctx; worker: ModerationWorker; readiness: Readiness; store: MediaStore; close(): Promise<void> }
@@ -58,6 +61,10 @@ export async function buildApp(config: Config, opts: BuildOptions = {}): Promise
     config, db, app, catalog, now: opts.now ?? Date.now,
     clef: new ClefClient(config.clef.baseUrl, config.clef.model, config.clef.callTimeoutMs),
     gemma: new GemmaClient(config.guide.baseUrl, config.guide.model, config.guide.timeoutMs, config.guide.think),
+    summary: createSummaryTools({
+      ...config.summary, guideBaseUrl: config.guide.baseUrl, guideModel: config.guide.model,
+      guideTimeoutMs: config.guide.timeoutMs, fetch: opts.summaryFetch,
+    }),
   });
   const worker = new ModerationWorker(ctx, store, (o, msg) => app.log.info(o, msg));
   const readiness = new Readiness(ctx, store);
