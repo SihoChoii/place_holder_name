@@ -9,24 +9,27 @@
 /* Begin PBXBuildFile section */
 		5BAACC1917289B92579CC70A /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96239C5ED89B7E793E93DC93 /* ContentView.swift */; };
 		B056F800B6EC4855399C798A /* StargazeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16A0CD23FA349F2D043260C2 /* StargazeApp.swift */; };
+		E4A7B2C9F1D84E6A9B3C5D71 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7F3E9D1C8A2B5F4E6D9C8A42 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		16A0CD23FA349F2D043260C2 /* StargazeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StargazeApp.swift; sourceTree = "<group>"; };
+		7F3E9D1C8A2B5F4E6D9C8A42 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		96239C5ED89B7E793E93DC93 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		BBE6DE2E18FC9CCA8A2E4231 /* Stargaze.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Stargaze.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
-		0EEC879A8B77ABC0FDB7660D /* Stargaze */ = {
-			isa = PBXGroup;
-			children = (
-				96239C5ED89B7E793E93DC93 /* ContentView.swift */,
-				16A0CD23FA349F2D043260C2 /* StargazeApp.swift */,
-			);
-			path = Stargaze;
-			sourceTree = "<group>";
-		};
+	0EEC879A8B77ABC0FDB7660D /* Stargaze */ = {
+		isa = PBXGroup;
+		children = (
+			7F3E9D1C8A2B5F4E6D9C8A42 /* Assets.xcassets */,
+			96239C5ED89B7E793E93DC93 /* ContentView.swift */,
+			16A0CD23FA349F2D043260C2 /* StargazeApp.swift */,
+		);
+		path = Stargaze;
+		sourceTree = "<group>";
+	};
 		3CBAF3048CA13968895F946A = {
 			isa = PBXGroup;
 			children = (
@@ -51,6 +54,7 @@
 			buildConfigurationList = 0C402167D11AE7F94495163C /* Build configuration list for PBXNativeTarget "Stargaze" */;
 			buildPhases = (
 				315266836D0127FB5BE30E6C /* Sources */,
+				2A8F4D6E9C3B1E7F5A4D8B23 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -96,6 +100,17 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		2A8F4D6E9C3B1E7F5A4D8B23 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E4A7B2C9F1D84E6A9B3C5D71 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		315266836D0127FB5BE30E6C /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -109,26 +124,28 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		41DC35466A835B5B61057756 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 0.0.0;
-				PRODUCT_NAME = Stargaze;
-				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
+	41DC35466A835B5B61057756 /* Release */ = {
+		isa = XCBuildConfiguration;
+		buildSettings = {
+			ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+			CODE_SIGN_IDENTITY = "iPhone Developer";
+			CURRENT_PROJECT_VERSION = 1;
+			GENERATE_INFOPLIST_FILE = YES;
+			INFOPLIST_KEY_NSCameraUsageDescription = "Stargaze uses the camera to overlay star positions on your live sky view";
+			INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Stargaze uses your location to accurately display stars visible from your position";
+			INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+			INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+			LD_RUNPATH_SEARCH_PATHS = (
+				"$(inherited)",
+				"@executable_path/Frameworks",
+			);
+			MARKETING_VERSION = 0.0.0;
+			PRODUCT_NAME = Stargaze;
+			SDKROOT = iphoneos;
+			TARGETED_DEVICE_FAMILY = "1,2";
 		};
+		name = Release;
+	};
 		AE06A243A0B563D12E76C450 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -254,26 +271,28 @@
 			};
 			name = Debug;
 		};
-		D5802E5795EB699DEB44276D /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 0.0.0;
-				PRODUCT_NAME = Stargaze;
-				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
+	D5802E5795EB699DEB44276D /* Debug */ = {
+		isa = XCBuildConfiguration;
+		buildSettings = {
+			ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+			CODE_SIGN_IDENTITY = "iPhone Developer";
+			CURRENT_PROJECT_VERSION = 1;
+			GENERATE_INFOPLIST_FILE = YES;
+			INFOPLIST_KEY_NSCameraUsageDescription = "Stargaze uses the camera to overlay star positions on your live sky view";
+			INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Stargaze uses your location to accurately display stars visible from your position";
+			INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+			INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+			LD_RUNPATH_SEARCH_PATHS = (
+				"$(inherited)",
+				"@executable_path/Frameworks",
+			);
+			MARKETING_VERSION = 0.0.0;
+			PRODUCT_NAME = Stargaze;
+			SDKROOT = iphoneos;
+			TARGETED_DEVICE_FAMILY = "1,2";
 		};
+		name = Debug;
+	};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
