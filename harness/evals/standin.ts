@@ -42,7 +42,7 @@ function isCorrection(messages: ChatMessage[]): boolean {
 function responseFor(id: number, request: ChatRequest): { content: string; tool_calls?: ToolCall[] } {
   const toolResult = hasToolResult(request.messages ?? []);
   if (toolResult || (id === 6 && request.stream)) {
-    if ([4, 5].includes(id) && !(request.messages ?? []).some(successfulSirius)) return { content: 'The star lookup did not provide verified Sirius facts.' };
+    if ([4, 5].includes(id) && !(request.messages ?? []).some(successfulSirius)) return { content: 'The star lookup did not provide verified facts.' };
     const answers: Record<number, string> = {
       2: 'At 17 km/s, the trip uses constant speed without relativity.',
       3: 'An approved community post says Sirius is beautiful.',
