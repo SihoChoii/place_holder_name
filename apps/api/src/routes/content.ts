@@ -34,9 +34,13 @@ export async function contentRoutes(app: FastifyInstance, { ctx, store }: { ctx:
   app.get<{ Params: { hyg_id: number }; Querystring: { speed_km_s: number } }>("/stars/:hyg_id/travel-time", {
     schema: { tags: ["stars"], params: hygParam, querystring: schemas.TravelTimeQuery, response: { 200: schemas.TravelTimeResponse, ...err } },
   }, async (req) => {
-    const speed = req.query.speed_km_s;
-    if (!Number.isFinite(speed)) throw badRequest("speed_km_s must be a finite positive number.", "validation_failed");
-    return travelTime(getStarOr404(ctx, req.params.hyg_id), speed);
+    const star = getStarOr404(ctx, req.params.hyg_id);
+    try {
+      return travelTime(star, req.query.speed_km_s); // Infinity (e.g. 1e400) and overflowing durations throw RangeError
+    } catch (e) {
+      if (e instanceof RangeError) throw badRequest(`${e.message}.`, "validation_failed");
+      throw e;
+    }
   });
 
   app.get<{ Params: { hyg_id: number }; Querystring: Page }>("/stars/:hyg_id/tags", {

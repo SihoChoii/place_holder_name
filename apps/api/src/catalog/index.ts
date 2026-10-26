@@ -111,6 +111,7 @@ export function travelTime(star: CatalogStar, speedKmS: number) {
       reason: "distance_unknown", model: TRAVEL_MODEL };
   }
   const seconds = (star.distance_ly * LIGHT_YEAR_KM) / speedKmS;
+  if (!Number.isFinite(seconds)) throw new RangeError("speed_km_s is too small to compute a travel time");
   return { hyg_id: star.hyg_id, speed_km_s: speedKmS, distance_ly: star.distance_ly, travel_seconds: seconds,
     travel_years: seconds / (365.25 * 86400), reason: null, model: TRAVEL_MODEL };
 }

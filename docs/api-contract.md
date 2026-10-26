@@ -150,7 +150,7 @@ Email is trimmed and lowercased. Fixtures: `auth.signup.201.json`, `me.200.json`
 | Method & path | Request | Success |
 | --- | --- | --- |
 | `GET /stars/:hyg_id` | — | `200 Star`. `404 not_found` for unknown IDs |
-| `GET /stars/:hyg_id/travel-time?speed_km_s=17` | `speed_km_s` finite, > 0 (no upper cap; constant-speed model) | `200 { hyg_id, speed_km_s, distance_ly, travel_seconds, travel_years, reason, model }`; distance unknown → numbers `null`, `reason: "distance_unknown"` |
+| `GET /stars/:hyg_id/travel-time?speed_km_s=17` | `speed_km_s` finite, > 0 (no upper cap; constant-speed model). A speed so small the duration overflows → `400 validation_failed` | `200 { hyg_id, speed_km_s, distance_ly, travel_seconds, travel_years, reason, model }`; distance unknown → numbers `null`, `reason: "distance_unknown"` |
 | `GET /stars/:hyg_id/tags?cursor&limit` | — | `200 { items: Tag[], next_cursor }` (visible to you) |
 | `POST /stars/:hyg_id/claim` | header `Idempotency-Key`; no body | `201 { claim: ClaimInfo, next_claim_at }`. `400 unknown_star`, `409 already_claimed`, `429 on_cooldown` (+ `retry_after_seconds`). Failed attempts do not start the cooldown |
 
@@ -268,7 +268,8 @@ Public `Tag` objects omit `my_reactions` and `processing_state`; image URLs use 
 - `selected_hyg_id` optional/null; in local mode it must be in `scope_hyg_ids`.
 - No system messages, model names or URLs are accepted.
 - `400 context_too_large` is decided before any model call: the current message plus instructions must leave room
-  for the tool round (about 1,450 characters in explore mode with no selected star). Older history is trimmed
+  for the tool round (about 1,450 ASCII characters in explore mode with no selected star; about 1,200 in local mode
+  with 200 stars in scope and a selected star; fewer for multibyte text). Older history is trimmed
   silently; tool results are shrunk if needed, so a request that starts is never rejected for size afterwards.
 
 Errors before streaming are normal JSON errors (`400`, `401`, `429`, `503 guide_busy` when 1 active + 2 waiting,

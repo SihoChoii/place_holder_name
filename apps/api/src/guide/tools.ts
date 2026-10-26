@@ -75,7 +75,9 @@ export function runTool(ctx: Ctx, scope: Scope, name: string, rawArgs: unknown):
     case "calculate_travel_time": {
       const speed = args.speed_km_s;
       if (typeof speed !== "number" || !Number.isFinite(speed) || speed <= 0) throw new ToolError("speed_km_s must be positive");
-      const t = travelTime(ctx.catalog.get(id)!, speed);
+      let t: ReturnType<typeof travelTime>;
+      try { t = travelTime(ctx.catalog.get(id)!, speed); }
+      catch (e) { throw e instanceof RangeError ? new ToolError(e.message) : e; }
       return { hyg_id: id, speed_km_s: speed, distance_ly: t.distance_ly, travel_years: t.travel_years == null ? null : Math.round(t.travel_years), note: "constant speed, no relativity" };
     }
     default: {

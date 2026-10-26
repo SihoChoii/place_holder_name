@@ -1,8 +1,23 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { runTool } from "../src/guide/tools.js";
 import { claimedStars } from "../src/services/claimed.js";
 import { harness, signup } from "./helpers.js";
+
+test("travel time: a speed so small the duration overflows is 400 (REST) and a tool error, never 500 or null", async (t) => {
+  const h = await harness(); t.after(() => h.close());
+  const a = await signup(h, "tiny-speed");
+  for (const speed of ["5e-324", "1e-300"]) {
+    const res = await h.server.app.inject({ url: `/api/stars/32263/travel-time?speed_km_s=${speed}`, headers: a.auth });
+    assert.equal(res.statusCode, 400, `${speed}: ${res.body}`);
+    assert.equal(res.json().error.code, "validation_failed");
+  }
+  assert.throws(() => runTool(h.server.ctx, null, "calculate_travel_time", { hyg_id: 32263, speed_km_s: 5e-324 }), /speed_km_s/);
+  const ok = await h.server.app.inject({ url: "/api/stars/32263/travel-time?speed_km_s=1e308", headers: a.auth });
+  assert.equal(ok.statusCode, 200);
+  assert.ok(Number.isFinite(ok.json().travel_years));
+});
 
 test("public claimed scales linearly: 8,000 claims with posts build in well under a second", async (t) => {
   const h = await harness(); t.after(() => h.close());
